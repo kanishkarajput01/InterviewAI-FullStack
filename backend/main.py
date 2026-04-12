@@ -140,7 +140,12 @@ class InterviewState(TypedDict):
     last_question: str
     last_answer: Optional[str]  # For API input
 
-
+class SessionResponse(BaseModel):
+    id: str
+    data: List[InterviewQA]
+    job_role: str
+    experience: int
+    current_question_idx: int
 # ---------------------------
 # LangGraph Nodes
 # ---------------------------
@@ -278,7 +283,7 @@ checkpointer = MemorySaver()
 compiled_graph = workflow.compile(checkpointer=checkpointer)
 
 
-class CreateSessionPayload(BaseModel):
+class CreateSessionRequest(BaseModel):
     job_role: str = Field(..., example="Research Engineer")
     experience: int = Field(..., example=1)
 
@@ -289,13 +294,25 @@ class CreateSessionResponse(BaseModel):
         experience: int
         current_question_idx: int
 
+class GetSessionRequest(BaseModel):
+    session_id: str
+
+class SubmitAnswerRequest(BaseModel):
+    answer: str
+class SubmitAnswerResponse(BaseModel):
+    question: str
+    answer: str
+    feedback: str
+    next_question: Optional[str]=None
+    next_question_idx: Optional[int]=None
+
 @app.post("/create-session")
-async def create_session(payload: CreateSessionPayload):
+async def create_session(req: CreateSessionRequest):
     session_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": session_id}}
     initial_state: InterviewState = {
-        "job_role": payload.job_role,
-        "experience": payload.experience,
+        "job_role": req.job_role,
+        "experience": req.experience,
         "data": [],
         "current_question_idx": 0,
         "interview_complete": False,
@@ -317,4 +334,42 @@ async def create_session(payload: CreateSessionPayload):
     )
 
 
-   
+@app.get("/session/{session_id}")
+async def get_session(session_id: str):
+    config = {"configurable": {"thread_id": session_id}}
+    state = compiled_graph.get_state(config)
+    values = state.values
+    return SessionResponse(
+        id=session_id,
+        data=values["data"],
+        job_role=values["job_role"],
+        experience=values["experience"],
+        current_question_idx=values.get("current_question_idx", 0),
+    )
+
+@app.post("/session/{session_id}/answers")
+async def post_answers(session_id: str, req: SubmitAnswerRequest):
+    config = {"configurable": {"thread_id": session_id}}
+    state = compiled_graph.get_state(config)
+    
+    values = state.values
+    idx = values.get("current_question_idx", 0)
+    question = values["data"][idx]["question"]
+    eval_values = {**values, "last_answer": req.answer.strip()} 
+
+    updated_state = evaluate_answer(eval_values)
+    compiled_graph.update_state( config, updated_state)
+    feedback = updated_state["data"][idx]["feedback"]
+    if updated_state.get("current_question_idx", 0) < 5:
+      next_question_idx = updated_state["current_question_idx"]
+       next_question = updated_state["data"][next_question_idx]["question"]
+    else:
+        # //generate final report
+    return SubmitAnswerResponse(
+        id=session_id,
+        question=question,
+        answer=req.answer,
+        feedback=feedback,
+        next_question=next_question,
+        next_question_idx=next_question_idx,
+    )
