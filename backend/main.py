@@ -306,6 +306,12 @@ class SubmitAnswerResponse(BaseModel):
     next_question: Optional[str]=None
     next_question_idx: Optional[int]=None
 
+class ReportResponse(BaseModel):
+    job_role: str
+    experience: int
+    final_report: str
+    interview_complete: bool
+
 @app.post("/create-session")
 async def create_session(req: CreateSessionRequest):
     session_id = str(uuid.uuid4())
@@ -360,16 +366,31 @@ async def post_answers(session_id: str, req: SubmitAnswerRequest):
     updated_state = evaluate_answer(eval_values)
     compiled_graph.update_state( config, updated_state)
     feedback = updated_state["data"][idx]["feedback"]
+    next_question: Optional[str] = None
+    next_question_idx: Optional[int] = None
     if updated_state.get("current_question_idx", 0) < 5:
-      next_question_idx = updated_state["current_question_idx"]
-       next_question = updated_state["data"][next_question_idx]["question"]
+        next_question_idx = updated_state["current_question_idx"]
+        next_question = updated_state["data"][next_question_idx]["question"]
     else:
         # //generate final report
+        final_state = generate_final_report(updated_state)
+        compiled_graph.update_state(config, final_state)
     return SubmitAnswerResponse(
-        id=session_id,
         question=question,
         answer=req.answer,
         feedback=feedback,
         next_question=next_question,
         next_question_idx=next_question_idx,
+    )
+
+@app.get("/session/{session_id}/report")
+async def get_report(session_id: str):
+    config = {"configurable": {"thread_id": session_id}}
+    state = compiled_graph.get_state(config)
+    values = state.values
+    return ReportResponse(
+       job_role=values["job_role"],
+       experience=values["experience"],
+       final_report=values["final_report"],
+       interview_complete=values["interview_complete"],
     )
