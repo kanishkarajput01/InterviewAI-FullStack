@@ -4,7 +4,7 @@ import uuid
 from typing import List, Optional, Literal, TypedDict
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,15 @@ from app.src.api._auth.user import user as get_user
 load_dotenv()
 
 app = FastAPI(title="AI Interviewer Backend", version="0.1.0")
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
@@ -396,20 +405,34 @@ async def get_report(session_id: str):
     )
 
 @app.post("/signup")
-async def user_signup(req: SignupRequest):
+async def user_signup(req: SignupRequest, response: Response):
     try:
-        user = signup(req)
-        return user
+        auth = signup(req)
+        response.set_cookie(
+            key="access_token",
+            value=auth.access_token,
+            httponly=True,
+            samesite="lax",
+            max_age=30 * 60,  # 30 minutes, matches ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+        return auth.user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Signup failed")
 
 @app.post("/login")
-async def user_login(req: LoginRequest):
+async def user_login(req: LoginRequest, response: Response):
     try:
-        user = login(req)
-        return user
+        auth = login(req)
+        response.set_cookie(
+            key="access_token",
+            value=auth.access_token,
+            httponly=True,
+            samesite="lax",
+            max_age=30 * 60,  # 30 minutes, matches ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+        return auth.user
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:

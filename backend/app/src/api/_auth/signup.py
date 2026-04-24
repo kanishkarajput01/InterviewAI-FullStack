@@ -1,7 +1,8 @@
 from app.src.utils._auth.initialize import db
+from app.src.utils._auth.jwt import create_access_token, create_refresh_token
 from datetime import datetime
 from pydantic import BaseModel, field_validator
-from app.src.dict import SignupRequest, UserDict
+from app.src.dict import SignupRequest, UserDict, AuthResponse
 import bcrypt
 import re
 
@@ -32,7 +33,7 @@ class SignupUserDict(BaseModel):
         return v
     
 
-def signup(req: SignupRequest):
+def signup(req: SignupRequest) -> AuthResponse:
     try:
         username = req.username
         password = req.password
@@ -48,7 +49,6 @@ def signup(req: SignupRequest):
             raise ValueError('User with this email already exists')
 
         # Get count of all existing users to generate sequential ID
-        user_ref = db.collection('users').get()
         user_doc = db.collection('users').document()
         user_id = user_doc.id    
         
@@ -66,13 +66,20 @@ def signup(req: SignupRequest):
         )
         
         user_doc.set(user.model_dump())
-        return UserDict(
+
+        user_dict = UserDict(
             id=user_id,
             username=username,
             email=email,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
+
+        token_data = {"id": user_id, "email": email, "username": username}
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
+
+        return AuthResponse(user=user_dict, access_token=access_token, refresh_token=refresh_token)
     except ValueError as e:
         raise e
     except Exception as e:
