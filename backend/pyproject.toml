@@ -10,4 +10,9 @@ dependencies = [
     "langchain>=1.2.10",
     "langchain-openai>=1.1.11",
     "uvicorn>=0.41.0",
+    "firebase-admin>=6.0.0",
+    "bcrypt>=4.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-dotenv>=1.0.0",
+    "langgraph>=0.2.0",
 ]

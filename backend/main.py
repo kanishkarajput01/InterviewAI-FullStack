@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from typing import List, Dict, Optional, Literal, TypedDict
+from typing import List, Optional, Literal, TypedDict
 
 
 from fastapi import FastAPI, HTTPException
@@ -15,15 +15,15 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+from app.src.dict import SignupRequest, LoginRequest
+from app.src.api._auth.signup import signup
+from app.src.api._auth.login import login
+from app.src.api._auth.user import user as get_user
 
 
 load_dotenv()
 
-
-
-
 app = FastAPI(title="AI Interviewer Backend", version="0.1.0")
-
 
 @app.get("/")
 async def root():
@@ -394,3 +394,33 @@ async def get_report(session_id: str):
        final_report=values["final_report"],
        interview_complete=values["interview_complete"],
     )
+
+@app.post("/signup")
+async def user_signup(req: SignupRequest):
+    try:
+        user = signup(req)
+        return user
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Signup failed")
+
+@app.post("/login")
+async def user_login(req: LoginRequest):
+    try:
+        user = login(req)
+        return user
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@app.get("/user/{id}")
+async def user_get(id: str):
+    try:
+        user_data = get_user(id)
+        return user_data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to get user")
