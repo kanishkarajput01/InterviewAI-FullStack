@@ -38,7 +38,6 @@ const features: Feature[] = [
     icon: ShieldCheck,
     title: "Private by Default",
     description: "Your sessions stay yours. We never share your recordings.",
-    filled: true,
   },
 ];
 

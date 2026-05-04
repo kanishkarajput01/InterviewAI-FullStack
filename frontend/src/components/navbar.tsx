@@ -64,7 +64,7 @@ export function Navbar() {
               <span
                 className={cn(
                   buttonVariants({ size: "sm" }),
-                  "bg-foreground text-background hover:bg-foreground/90"
+                  "bg-purple-700 text-background hover:bg-purple-700"
                 )}
               >
                 Sign up
@@ -130,7 +130,7 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   buttonVariants(),
-                  "bg-foreground text-background hover:bg-foreground/90"
+                  "bg-purple-700 text-background hover:bg-purple-700"
                 )}
               >
                 Sign up
