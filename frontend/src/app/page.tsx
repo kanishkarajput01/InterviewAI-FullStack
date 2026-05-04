@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { ArrowRight, CirclePlay } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { AuthDialog } from "@/components/auth-dialog";
-import { FeaturesSection } from "@/components/features-section";
+
+import { AuthDialog } from "@/components/_shared/AuthDialog";
+import { FeaturesSection } from "@/components/_shared/FeaturesSection";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 const badges = [

@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { BrainCircuit, Menu, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { AuthDialog } from "@/components/auth-dialog";
+
+import { AuthDialog } from "@/components/_shared/AuthDialog";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { cn } from "@/lib/utils";
 
 const navLinks = [

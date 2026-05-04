@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
+
+import { Footer } from "@/components/_shared/Footer";
+import { Navbar } from "@/components/_shared/Navbar";
 import "./globals.css";
 
 const rubik = Rubik({

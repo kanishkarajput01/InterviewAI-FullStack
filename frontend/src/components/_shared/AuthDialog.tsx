@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Mail, Lock, User, Sparkles } from "lucide-react";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup";

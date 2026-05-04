@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 
 const footerLinks = [
   { label: "Privacy", href: "/privacy" },

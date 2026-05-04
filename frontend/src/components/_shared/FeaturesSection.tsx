@@ -1,4 +1,5 @@
 import { Brain, Mic, Crosshair, Zap, BarChart2, ShieldCheck, type LucideIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 interface Feature {
