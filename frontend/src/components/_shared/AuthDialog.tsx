@@ -1,8 +1,9 @@
 "use client";
 
-import { Mail, Lock, User, Sparkles } from "lucide-react";
+import { Lock, Mail, Sparkles, User } from "lucide-react";
 import { useState } from "react";
 
+import { ApiClientService } from "@/app/_services/ApiService";
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -17,47 +18,133 @@ type AuthMode = "login" | "signup";
 function InputWithIcon({
   icon: Icon,
   className,
-  ...props
-}: React.ComponentProps<"input"> & { icon: React.ElementType }) {
+  type,
+  placeholder,
+  value,
+  onChange,
+  required,
+}: {
+  icon: React.ElementType;
+  className?: string;
+  type?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+}) {
   return (
     <div className="relative">
       <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input className={cn("h-11 pl-9 text-sm", className)} {...props} />
+      <Input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className={cn("h-11 pl-9 text-sm", className)}
+      />
     </div>
   );
 }
 
-function LoginForm({ onSwitch }: { onSwitch: () => void }) {
+function LoginForm({
+  onSwitch,
+  onSuccess,
+}: {
+  onSwitch: () => void;
+  onSuccess: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { data, error: apiError } = await ApiClientService.login({
+        email:email.trim(),
+        password:password.trim(),
+      });
+
+      if (apiError || !data) {
+        setError(apiError || "Login failed");
+        return;
+      }
+
+      onSuccess();
+    } catch (_err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="rounded-t-xl bg-gradient-to-br from-violet-600 to-purple-700 px-6 pb-8 pt-5">
+      <div className="rounded-t-xl bg-linear-to-br from-violet-600 to-purple-700 px-6 pb-8 pt-5">
         <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1">
           <Sparkles className="h-3.5 w-3.5 text-white" />
           <span className="text-xs font-semibold text-white">IntervueAI</span>
         </div>
         <h2 className="text-2xl font-bold text-white">Welcome back</h2>
-        <p className="mt-1 text-sm text-white/70">Continue your interview journey</p>
+        <p className="mt-1 text-sm text-white/70">
+          Continue your interview journey
+        </p>
       </div>
 
-      <div className="px-6 pb-6 pt-6">
+      <form onSubmit={handleSubmit} className="px-6 pb-6 pt-6">
         <div className="flex flex-col gap-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <InputWithIcon icon={Mail} type="email" placeholder="you@example.com" />
+            <label className="text-sm font-medium text-foreground">
+              Email
+            </label>
+            <InputWithIcon
+              icon={User}
+              type="text"
+              placeholder="your_username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <InputWithIcon icon={Lock} type="password" placeholder="••••••••" />
+            <label className="text-sm font-medium text-foreground">
+              Password
+            </label>
+            <InputWithIcon
+              icon={Lock}
+              type="password"
+              placeholder="••••••••"
+              // minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
-          <Button className="mt-1 h-11 w-full rounded-lg bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700">
-            Sign In
+          <Button
+            type="submit"
+            disabled={loading}
+            className="mt-1 h-11 w-full rounded-lg bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             New here?{" "}
             <button
+              type="button"
               onClick={onSwitch}
               className="font-semibold text-violet-600 hover:underline"
             >
@@ -65,47 +152,123 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
             </button>
           </p>
         </div>
-      </div>
+      </form>
     </>
   );
 }
 
-function SignupForm({ onSwitch }: { onSwitch: () => void }) {
+function SignupForm({
+  onSwitch,
+  onSuccess,
+}: {
+  onSwitch: () => void;
+  onSuccess: () => void;
+}) {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { data, error: apiError } = await ApiClientService.signup({
+        username:username.trim(),
+        password:password.trim(),
+        email:email.trim(),
+      });
+
+      if (apiError || !data) {
+        setError(apiError || "Signup failed");
+        return;
+      }
+
+      onSuccess();
+    } catch (_err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="rounded-t-xl bg-gradient-to-br from-violet-600 to-purple-700 px-6 pb-8 pt-5">
+      <div className="rounded-t-xl bg-linear-to-br from-violet-600 to-purple-700 px-6 pb-8 pt-5">
         <div className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1">
           <Sparkles className="h-3.5 w-3.5 text-white" />
           <span className="text-xs font-semibold text-white">IntervueAI</span>
         </div>
         <h2 className="text-2xl font-bold text-white">Create your account</h2>
-        <p className="mt-1 text-sm text-white/70">Start practicing in seconds</p>
+        <p className="mt-1 text-sm text-white/70">
+          Start practicing in seconds
+        </p>
       </div>
 
-      <div className="px-6 pb-6 pt-6">
+      <form onSubmit={handleSubmit} className="px-6 pb-6 pt-6">
         <div className="flex flex-col gap-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Name</label>
-            <InputWithIcon icon={User} type="text" placeholder="Jane Doe" />
+            <label className="text-sm font-medium text-foreground">
+              Username
+            </label>
+            <InputWithIcon
+              icon={User}
+              type="text"
+              placeholder="your_username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <InputWithIcon icon={Mail} type="email" placeholder="you@example.com" />
+            <label className="text-sm font-medium text-foreground">
+              Email
+            </label>
+            <InputWithIcon
+              icon={Mail}
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <InputWithIcon icon={Lock} type="password" placeholder="••••••••" />
+            <label className="text-sm font-medium text-foreground">
+              Password
+            </label>
+            <InputWithIcon
+              icon={Lock}
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
-          <Button className="mt-1 h-11 w-full rounded-lg bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700">
-            Create Account
+          <Button
+            type="submit"
+            disabled={loading}
+            className="mt-1 h-11 w-full rounded-lg bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+          >
+            {loading ? "Creating account..." : "Create Account"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             Have an account?{" "}
             <button
+              type="button"
               onClick={onSwitch}
               className="font-semibold text-violet-600 hover:underline"
             >
@@ -113,7 +276,7 @@ function SignupForm({ onSwitch }: { onSwitch: () => void }) {
             </button>
           </p>
         </div>
-      </div>
+      </form>
     </>
   );
 }
@@ -128,6 +291,11 @@ export function AuthDialog({
   const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [open, setOpen] = useState(false);
 
+  const handleSuccess = () => {
+    setOpen(false);
+    // window.location.reload();
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>{trigger}</DialogTrigger>
@@ -136,9 +304,15 @@ export function AuthDialog({
         showCloseButton
       >
         {mode === "login" ? (
-          <LoginForm onSwitch={() => setMode("signup")} />
+          <LoginForm
+            onSwitch={() => setMode("signup")}
+            onSuccess={handleSuccess}
+          />
         ) : (
-          <SignupForm onSwitch={() => setMode("login")} />
+          <SignupForm
+            onSwitch={() => setMode("login")}
+            onSuccess={handleSuccess}
+          />
         )}
       </DialogContent>
     </Dialog>

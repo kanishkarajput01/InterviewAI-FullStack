@@ -14,11 +14,10 @@ def user(id: str) -> UserDict:
         user = user_doc.to_dict()
 
         return UserDict(
-            id=user_ref.id,  # Use the stored ID from the document
+            id=user_ref.id,
             username=user.get('username', ''),
             created_at=user.get('created_at', datetime.now()),
             updated_at=user.get('updated_at', datetime.now()),
-            bio=user.get('bio', ''),
             email=user.get('email')
         )
 
