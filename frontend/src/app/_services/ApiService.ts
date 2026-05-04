@@ -1,4 +1,4 @@
-import type { IUser, IUserResponse } from "@/types";
+import type { IUser } from "@/types";
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -127,7 +127,7 @@ export class ApiClientService {
     const { url, method } = await this.getRouteConfig({
       route: EApiRoute.SIGNUP,
     });
-    return this.apiClientService<IUserResponse>({
+    return this.apiClientService<IUser>({
       url,
       method,
       data: { username, password, email },
@@ -144,7 +144,7 @@ export class ApiClientService {
     const { url, method } = await this.getRouteConfig({
       route: EApiRoute.LOGIN,
     });
-    return this.apiClientService<IUserResponse>({
+    return this.apiClientService<IUser>({
       url,
       method,
       data: { email, password },
@@ -165,7 +165,7 @@ export class ApiClientService {
     const { url, method } = await this.getRouteConfig({
       route: EApiRoute.REFRESH,
     });
-    return this.apiClientService<IUserResponse>({
+    return this.apiClientService<IUser>({
       url,
       method,
       data: { refresh_token },

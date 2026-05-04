@@ -1,9 +1,11 @@
 "use client";
 
-import { BrainCircuit, Menu, X } from "lucide-react";
+import { BrainCircuit, LogOut, Menu, User, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ApiClientService } from "@/app/_services/ApiService";
 import { AuthDialog } from "@/components/_shared/AuthDialog";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import {
@@ -13,6 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/Dialog";
+import { Popover, PopoverItem } from "@/components/ui/Popover";
+import { useUser } from "@/context/UserContext";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -23,7 +27,16 @@ const navLinks = [
 ];
 
 export function Navbar() {
+  const { user, setUser } = useUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await ApiClientService.logout();
+    setUser(null);
+    router.push("/");
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
@@ -50,29 +63,59 @@ export function Navbar() {
         </nav>
 
         {/* Desktop actions */}
-        <div className="hidden items-center gap-2 md:flex">
-          <AuthDialog
-            defaultMode="login"
-            trigger={
-              <span className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                Log in
-              </span>
-            }
-          />
-          <AuthDialog
-            defaultMode="signup"
-            trigger={
-              <span
-                className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "bg-purple-700 text-background hover:bg-purple-700"
-                )}
+        {user ? (
+          <div className="hidden items-center gap-3 md:flex">
+            <Popover
+              trigger={
+                <div className="flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1.5 transition-colors hover:bg-muted">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-xs font-semibold text-white">
+                    {user.username.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium">{user.username}</span>
+                </div>
+              }
+            >
+              <PopoverItem
+                onClick={() => router.push("/profile")}
+                className="flex items-center gap-2"
               >
-                Sign up
-              </span>
-            }
-          />
-        </div>
+                <User size={16} />
+                <span>Profile</span>
+              </PopoverItem>
+              <PopoverItem
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </PopoverItem>
+            </Popover>
+          </div>
+        ) : (
+          <div className="hidden items-center gap-2 md:flex">
+            <AuthDialog
+              defaultMode="login"
+              trigger={
+                <span className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                  Log in
+                </span>
+              }
+            />
+            <AuthDialog
+              defaultMode="signup"
+              trigger={
+                <span
+                  className={cn(
+                    buttonVariants({ size: "sm" }),
+                    "bg-purple-600 text-white hover:bg-purple-700"
+                  )}
+                >
+                  Sign up
+                </span>
+              }
+            />
+          </div>
+        )}
 
         {/* Mobile menu trigger */}
         <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -119,23 +162,65 @@ export function Navbar() {
             </nav>
 
             <div className="mt-auto flex flex-col gap-2 pt-4">
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  buttonVariants(),
-                  "bg-purple-700 text-background hover:bg-purple-700"
-                )}
-              >
-                Sign up
-              </Link>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-sm font-semibold text-white">
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{user.username}</span>
+                      <span className="text-xs text-muted-foreground">{user.email}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      router.push("/profile");
+                    }}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <User size={16} />
+                    Profile
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <AuthDialog
+                    defaultMode="login"
+                    trigger={
+                      <span className={cn(buttonVariants({ variant: "outline" }))}>
+                        Log in
+                      </span>
+                    }
+                  />
+                  <AuthDialog
+                    defaultMode="signup"
+                    trigger={
+                      <span
+                        className={cn(
+                          buttonVariants(),
+                          "bg-purple-600 text-white hover:bg-purple-700"
+                        )}
+                      >
+                        Sign up
+                      </span>
+                    }
+                  />
+                </>
+              )}
             </div>
           </DialogContent>
         </Dialog>
