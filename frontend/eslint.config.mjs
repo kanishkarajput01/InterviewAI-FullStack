@@ -2,12 +2,16 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettierConfig from "eslint-config-prettier";
+import unicorn from "eslint-plugin-unicorn";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettierConfig,
   {
+    plugins: {
+      unicorn,
+    },
     rules: {
       // TypeScript
       "@typescript-eslint/no-explicit-any": "error",
@@ -47,6 +51,30 @@ const eslintConfig = defineConfig([
       "no-nested-ternary": "warn",
       eqeqeq: ["error", "always", { null: "ignore" }],
       curly: ["error", "all"],
+
+      // File Naming Convention
+      "unicorn/filename-case": [
+        "error",
+        {
+          cases: {
+            pascalCase: true,
+            camelCase: true,
+          },
+          ignore: [
+            "^layout\\.tsx?$",
+            "^page\\.tsx?$",
+            "^loading\\.tsx?$",
+            "^not-found\\.tsx?$",
+            "^error\\.tsx?$",
+            "^global-error\\.tsx?$",
+            "^route\\.ts?$",
+            "^template\\.tsx?$",
+            "^default\\.tsx?$",
+            "^middleware\\.ts?$",
+            "^instrumentation\\.ts?$",
+          ],
+        },
+      ],
 
       // Import Organization
       "no-duplicate-imports": "error",

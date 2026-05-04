@@ -58,7 +58,7 @@ def signup(req: SignupRequest) -> AuthResponse:
         user = SignupUserDict(
             id=user_id,
             username=username,
-            password=encoded_password.decode('utf-8'),  # Convert bytes to string for JSON serialization
+            password=encoded_password.decode('utf-8'),
             created_at=datetime.now(),
             updated_at=datetime.now(),
             bio='',

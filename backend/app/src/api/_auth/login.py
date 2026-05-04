@@ -25,8 +25,8 @@ def login(req: LoginRequest) -> AuthResponse:
             id=user_data.get('id'),
             username=user_data.get('username'),
             email=email,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
+            created_at=user_data.get('created_at', datetime.now()),
+            updated_at=user_data.get('updated_at', datetime.now())
         )
 
         token_data = {"id": user.id, "email": user.email, "username": user.username}

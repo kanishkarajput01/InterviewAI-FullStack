@@ -3,6 +3,7 @@ import { Rubik } from "next/font/google";
 
 import { Footer } from "@/components/_shared/Footer";
 import { Navbar } from "@/components/_shared/Navbar";
+
 import "./globals.css";
 
 const rubik = Rubik({
