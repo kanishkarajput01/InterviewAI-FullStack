@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
+import { useUser } from "@/context/UserContext";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup";
@@ -54,6 +55,7 @@ function LoginForm({
   onSwitch: () => void;
   onSuccess: () => void;
 }) {
+  const { setUser } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -76,6 +78,7 @@ function LoginForm({
       }
 
       onSuccess();
+      setUser(data);
     } catch (_err) {
       setError("An unexpected error occurred");
     } finally {
@@ -164,6 +167,7 @@ function SignupForm({
   onSwitch: () => void;
   onSuccess: () => void;
 }) {
+  const { setUser } = useUser();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -186,7 +190,7 @@ function SignupForm({
         setError(apiError || "Signup failed");
         return;
       }
-
+      setUser(data);
       onSuccess();
     } catch (_err) {
       setError("An unexpected error occurred");

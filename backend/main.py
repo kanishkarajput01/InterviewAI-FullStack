@@ -431,7 +431,7 @@ async def user_login(req: LoginRequest, response: Response):
             value=auth.access_token,
             httponly=True,
             samesite="lax",
-            max_age=30 * 60,  # 30 minutes, matches ACCESS_TOKEN_EXPIRE_MINUTES
+            max_age=30 * 60,
         )
         return auth.user
     except ValueError as e:
@@ -439,28 +439,42 @@ async def user_login(req: LoginRequest, response: Response):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Login failed")
 
+
+@app.post("/logout")
+async def logout(response: Response):
+    """Clear auth cookie so the browser stops sending it."""
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        httponly=True,
+        samesite="lax",
+    )
+    return {"message": "Logged out"}
+
 @app.get('/me')
 async def get_me(access_token: Optional[str] = Cookie(None)):
     """Get current logged-in user details from cookie"""
+    
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated - no cookie")
+    
+    # Verify token
+    payload = verify_token(access_token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user_id = payload.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+    
     try:
-        if not access_token:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        # Verify token
-        payload = verify_token(access_token)
-        if not payload:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        
-        user_id = payload.get("id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-        
         user_details = get_user(user_id)
         return user_details
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to fetch user details")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user details: {str(e)}")
 
 
 @app.get("/user/{id}")

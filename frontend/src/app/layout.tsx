@@ -3,6 +3,8 @@ import { Rubik } from "next/font/google";
 
 import { Footer } from "@/components/_shared/Footer";
 import { Navbar } from "@/components/_shared/Navbar";
+import { UserProvider } from "@/context/UserContext";
+import { getUser } from "@/lib/getUser";
 
 import "./globals.css";
 
@@ -17,17 +19,21 @@ export const metadata: Metadata = {
   description: "Ace your next interview with AI",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getUser();
+
   return (
     <html lang="en" className={`${rubik.variable} h-full antialiased`}>
       <body className={`${rubik.className} flex min-h-full flex-col`}>
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <UserProvider user={user}>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </UserProvider>
       </body>
     </html>
   );

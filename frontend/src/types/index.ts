@@ -5,13 +5,6 @@ export interface IUser {
   created_at?: string;
 }
 
-export interface IUserResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  user: IUser;
-}
-
 export interface IAuthCredentials {
   username: string;
   password: string;
