@@ -4,7 +4,7 @@ import uuid
 from typing import List, Optional, Literal, TypedDict
 
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,7 @@ from app.src.dict import SignupRequest, LoginRequest
 from app.src.api._auth.signup import signup
 from app.src.api._auth.login import login
 from app.src.api._auth.user import user as get_user
+from app.src.utils._auth.jwt import verify_token
 
 
 load_dotenv()
@@ -437,6 +438,30 @@ async def user_login(req: LoginRequest, response: Response):
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Login failed")
+
+@app.get('/me')
+async def get_me(access_token: Optional[str] = Cookie(None)):
+    """Get current logged-in user details from cookie"""
+    try:
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Verify token
+        payload = verify_token(access_token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
+        user_id = payload.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+        
+        user_details = get_user(user_id)
+        return user_details
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to fetch user details")
+
 
 @app.get("/user/{id}")
 async def user_get(id: str):
