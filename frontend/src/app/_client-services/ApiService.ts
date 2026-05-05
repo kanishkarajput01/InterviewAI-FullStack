@@ -1,4 +1,4 @@
-import type { IUser } from "@/types";
+import type { IUser } from "@/_shared/types";
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 

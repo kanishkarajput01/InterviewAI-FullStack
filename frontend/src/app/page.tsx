@@ -1,8 +1,9 @@
 import { ArrowRight, CirclePlay } from "lucide-react";
 
-import { AuthDialog } from "@/components/_shared/AuthDialog";
-import { FeaturesSection } from "@/components/_shared/FeaturesSection";
-import { Button, buttonVariants } from "@/components/ui/Button";
+import { AuthModeEnum } from "@/_shared/types";
+import { AuthDialog } from "@/app/_shared-components/AuthDialog";
+import { Button, buttonVariants } from "@/app/_shared-components/Button";
+import { FeaturesSection } from "@/app/_shared-components/FeaturesSection";
 import { cn } from "@/lib/utils";
 
 const badges = [
@@ -40,7 +41,7 @@ export default function Home() {
         {/* CTAs */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           <AuthDialog
-            defaultMode="signup"
+            defaultMode={AuthModeEnum.SIGNUP}
             trigger={
               <span
                 className={cn(

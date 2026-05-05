@@ -5,18 +5,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { ApiClientService } from "@/app/_services/ApiService";
-import { AuthDialog } from "@/components/_shared/AuthDialog";
-import { Button, buttonVariants } from "@/components/ui/Button";
+import { AuthDialog } from "@/_shared/AuthDialog";
+import { AuthModeEnum } from "@/_shared/types";
+import { ApiClientService } from "@/app/_client-services/ApiService";
+import { Button, buttonVariants } from "@/app/_shared-components/Button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/Dialog";
-import { Popover, PopoverItem } from "@/components/ui/Popover";
-import { useUser } from "@/context/UserContext";
+} from "@/app/_shared-components/Dialog";
+import { Popover, PopoverItem } from "@/app/_shared-components/Popover";
+import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -36,7 +37,6 @@ export function Navbar() {
     setUser(null);
     router.push("/");
   };
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
@@ -94,7 +94,7 @@ export function Navbar() {
         ) : (
           <div className="hidden items-center gap-2 md:flex">
             <AuthDialog
-              defaultMode="login"
+              defaultMode={AuthModeEnum.LOGIN}
               trigger={
                 <span className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
                   Log in
@@ -102,7 +102,7 @@ export function Navbar() {
               }
             />
             <AuthDialog
-              defaultMode="signup"
+              defaultMode={AuthModeEnum.SIGNUP}
               trigger={
                 <span
                   className={cn(
@@ -199,7 +199,7 @@ export function Navbar() {
               ) : (
                 <>
                   <AuthDialog
-                    defaultMode="login"
+                    defaultMode={AuthModeEnum.LOGIN}
                     trigger={
                       <span className={cn(buttonVariants({ variant: "outline" }))}>
                         Log in
@@ -207,7 +207,7 @@ export function Navbar() {
                     }
                   />
                   <AuthDialog
-                    defaultMode="signup"
+                    defaultMode={AuthModeEnum.SIGNUP}
                     trigger={
                       <span
                         className={cn(

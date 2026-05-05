@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-import type { IUser } from "@/types";
+import type { IUser } from "@/_shared/types";
 
 interface UserContextType {
   user: IUser | null;

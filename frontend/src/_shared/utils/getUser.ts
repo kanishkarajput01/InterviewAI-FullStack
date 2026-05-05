@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import type { IUser } from "@/types";
+import type { IUser } from "../types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
