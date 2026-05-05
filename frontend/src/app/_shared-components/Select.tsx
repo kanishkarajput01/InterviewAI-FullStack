@@ -6,7 +6,6 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-
 const Select = SelectPrimitive.Root
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
 
-import { Footer } from "@/components/_shared/Footer";
-import { Navbar } from "@/components/_shared/Navbar";
-import { UserProvider } from "@/context/UserContext";
-import { getUser } from "@/lib/getUser";
+import { getUser } from "@/_shared/utils/getUser";
+import { Footer } from "@/app/_shared-components/Footer";
+import { Navbar } from "@/app/_shared-components/Navbar";
+import { UserProvider } from "@/app/contexts/UserContext";
 
 import "./globals.css";
 

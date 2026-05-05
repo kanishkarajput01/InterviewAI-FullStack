@@ -1,20 +1,20 @@
 "use client";
 
 import { Lock, Mail, Sparkles, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { ApiClientService } from "@/app/_services/ApiService";
-import { Button } from "@/components/ui/Button";
+import { AuthModeEnum } from "@/_shared/types";
+import { ApiClientService } from "@/app/_client-services/ApiService";
+import { Button } from "@/app/_shared-components/Button";
 import {
   Dialog,
   DialogContent,
   DialogTrigger,
-} from "@/components/ui/Dialog";
-import { Input } from "@/components/ui/Input";
-import { useUser } from "@/context/UserContext";
+} from "@/app/_shared-components/Dialog";
+import { Input } from "@/app/_shared-components/Input";
+import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
-
-type AuthMode = "login" | "signup";
 
 function InputWithIcon({
   icon: Icon,
@@ -286,35 +286,44 @@ function SignupForm({
 }
 
 export function AuthDialog({
-  defaultMode = "login",
+  defaultMode = AuthModeEnum.LOGIN,
   trigger,
 }: {
-  defaultMode?: AuthMode;
+  defaultMode?: AuthModeEnum;
   trigger: React.ReactNode;
 }) {
-  const [mode, setMode] = useState<AuthMode>(defaultMode);
+  const {user} = useUser();
+  const router = useRouter(); 
+  const [mode, setMode] = useState<AuthModeEnum>(defaultMode);
   const [open, setOpen] = useState(false);
 
   const handleSuccess = () => {
     setOpen(false);
-    // window.location.reload();
   };
 
+  const handleOpen=(open: boolean)=>{
+    if(user){
+      router.push("/interview");
+      return;
+    }
+    setOpen(open);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger className="cursor-pointer">{trigger}</DialogTrigger>
       <DialogContent
         className="overflow-hidden p-0 sm:max-w-sm"
         showCloseButton
       >
-        {mode === "login" ? (
+        {mode === AuthModeEnum.LOGIN ? (
           <LoginForm
-            onSwitch={() => setMode("signup")}
+            onSwitch={() => setMode(AuthModeEnum.SIGNUP)}
             onSuccess={handleSuccess}
           />
         ) : (
           <SignupForm
-            onSwitch={() => setMode("login")}
+            onSwitch={() => setMode(AuthModeEnum.LOGIN)}
             onSuccess={handleSuccess}
           />
         )}

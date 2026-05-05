@@ -50,7 +50,7 @@ const eslintConfig = defineConfig([
       "prefer-arrow-callback": "error",
       "no-nested-ternary": "warn",
       eqeqeq: ["error", "always", { null: "ignore" }],
-      curly: ["error", "all"],
+      "no-multiple-empty-lines": ["error", { max: 1, maxEOF: 0, maxBOF: 0 }],
 
       // File Naming Convention
       "unicorn/filename-case": [
