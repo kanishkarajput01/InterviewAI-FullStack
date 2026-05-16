@@ -452,7 +452,7 @@ async def logout(response: Response):
     return {"message": "Logged out"}
 
 @app.get('/me')
-async def get_me(access_token: Optional[str] = Cookie(None)):
+async def get_me(response: Response, access_token: Optional[str] = Cookie(None)):
     """Get current logged-in user details from cookie"""
     
     if not access_token:
@@ -470,6 +470,15 @@ async def get_me(access_token: Optional[str] = Cookie(None)):
     
     try:
         user_details = get_user(user_id)
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=30 * 60,
+        )
+
         return user_details
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
