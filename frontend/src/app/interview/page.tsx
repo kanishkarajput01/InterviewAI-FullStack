@@ -53,7 +53,7 @@ export default function InterviewPage() {
         {/* Main content */}
         <div className="grid gap-8 lg:grid-cols-[350px_1fr]">
           {/* Left sidebar - What You'll Get */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-900/5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-900/5">
             <div className="mb-4 flex items-center gap-2 text-purple-600">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
                 <Sparkles className="h-4 w-4" />
@@ -61,9 +61,9 @@ export default function InterviewPage() {
               <h2 className="text-lg font-semibold">What You&apos;ll Get</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 mt-8">
               {features.map((feature, index) => (
-                <div key={index} className="flex gap-3">
+                <div key={index} className="flex gap-4">
                   <div
                     className={cn(
                       "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",

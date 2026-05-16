@@ -1,11 +1,17 @@
 "use client";
 
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
+import { AuthModeEnum } from "@/_shared/types";
+import { AuthDialog } from "@/app/_shared-components/AuthDialog";
 import { Button } from "@/app/_shared-components/Button";
 import { Input } from "@/app/_shared-components/Input";
+import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
+
+import ApiClientService from "../_client-services/ApiService";
 
 const EXPERIENCE_LEVELS = [
   { label: "0-1 years", value: 1, bgColor: "bg-emerald-100", borderColor: "peer-checked:border-emerald-500", dotColor: "bg-emerald-500" },
@@ -18,24 +24,40 @@ const EXPERIENCE_LEVELS = [
 ] as const;
 
 export default function JobBasedPage() {
+  const { user } = useUser();
   const [form, setForm] = useState({
     jobTitle: "",
     experienceLevel: 1,
   });
+  const router = useRouter();
+  const [showAuth, setShowAuth] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
     const formData = new FormData(e.currentTarget);
-
-    const _data = {
-      jobTitle: formData.get("jobTitle"),
-      experienceLevel: formData.get("experienceLevel"),
-    };
+    const jobRole = formData.get("jobTitle") as string || '';
+    const experience = Number(formData.get("experienceLevel"));
+  
+    if(!jobRole || !experience) {
+      return;
+    }
+    const { data, error: apiError } = await ApiClientService.createSession({
+      jobRole,
+      experience,
+    });
+    if(apiError || !data) {
+      return;
+    }
+router.push(`/session/${data.id}`);
   };
 
   return (
@@ -122,6 +144,11 @@ export default function JobBasedPage() {
               </Button>
             </div>
           </form>
+          <AuthDialog
+            defaultMode={AuthModeEnum.LOGIN}
+            open={showAuth}
+            onOpenChange={setShowAuth}
+          />
         </div>
       </div>
     </div>
