@@ -22,7 +22,7 @@ export async function getUser(): Promise<IUser | null> {
         "Content-Type": "application/json",
         Cookie: cookieHeader,
       },
-      cache: "no-store",
+      credentials: "include",
     });
 
     if (!response.ok) {
