@@ -11,6 +11,9 @@ export async function getUser(): Promise<IUser | null> {
 
   try {
     const cookieStore = await cookies();
+    if (!cookieStore) {
+      return null;
+    }
     const cookieHeader = cookieStore
       .getAll()
       .map((cookie) => `${cookie.name}=${cookie.value}`)
@@ -23,6 +26,7 @@ export async function getUser(): Promise<IUser | null> {
         Cookie: cookieHeader,
       },
       credentials: "include",
+      cache: "no-store",
     });
 
     if (!response.ok) {
