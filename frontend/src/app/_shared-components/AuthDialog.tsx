@@ -288,30 +288,39 @@ function SignupForm({
 export function AuthDialog({
   defaultMode = AuthModeEnum.LOGIN,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: {
   defaultMode?: AuthModeEnum;
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const {user} = useUser();
-  const router = useRouter(); 
+  const router = useRouter();
   const [mode, setMode] = useState<AuthModeEnum>(defaultMode);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
 
   const handleSuccess = () => {
-    setOpen(false);
+    if (isControlled) controlledOnOpenChange?.(false);
+    else setInternalOpen(false);
   };
 
-  const handleOpen=(open: boolean)=>{
-    if(user){
+  const handleOpen = (next: boolean) => {
+    if (next && user) {
       router.push("/interview");
       return;
     }
-    setOpen(open);
-  }
+    if (isControlled) controlledOnOpenChange?.(next);
+    else setInternalOpen(next);
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger className="cursor-pointer">{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger className="cursor-pointer">{trigger}</DialogTrigger>}
       <DialogContent
         className="overflow-hidden p-0 sm:max-w-sm"
         showCloseButton

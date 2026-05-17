@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainCircuit, LogOut, Menu, User, X } from "lucide-react";
+import { BrainCog, LogOut, Menu, User, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,7 +44,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-600 text-white">
-            <BrainCircuit size={16} />
+            <BrainCog size={16} />
           </span>
           <span className="text-sm font-bold tracking-tight">IntervueAI</span>
         </Link>
@@ -135,7 +135,7 @@ export function Navbar() {
             <DialogHeader className="flex-row items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-600 text-white">
-                  <BrainCircuit size={16} />
+                  <BrainCog size={16} />
                 </span>
                 IntervueAI
               </DialogTitle>
