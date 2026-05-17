@@ -15,7 +15,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
-from app.src.dict import SignupRequest, LoginRequest
+from app.src.dict import SignupRequest, LoginRequest, UserDict
 from app.src.api._auth.signup import signup
 from app.src.api._auth.login import login
 from app.src.api._auth.user import user as get_user
@@ -405,7 +405,7 @@ async def get_report(session_id: str):
        interview_complete=values["interview_complete"],
     )
 
-@app.post("/signup")
+@app.post("/signup", response_model=UserDict)
 async def user_signup(req: SignupRequest, response: Response):
     try:
         auth = signup(req)
@@ -422,7 +422,7 @@ async def user_signup(req: SignupRequest, response: Response):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Signup failed")
 
-@app.post("/login")
+@app.post("/login", response_model=UserDict)
 async def user_login(req: LoginRequest, response: Response):
     try:
         auth = login(req)

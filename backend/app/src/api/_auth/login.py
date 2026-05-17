@@ -2,6 +2,7 @@ from app.src.utils._auth.initialize import db
 from app.src.utils._auth.jwt import create_access_token, create_refresh_token
 from datetime import datetime
 from app.src.dict import LoginRequest, UserDict, AuthResponse
+from google.cloud.firestore import FieldFilter
 import bcrypt
 
 
@@ -10,7 +11,9 @@ def login(req: LoginRequest) -> AuthResponse:
         email = req.email
         password = req.password
 
-        existing_users = db.collection('users').where('email', '==', email).get()
+        existing_users = db.collection('users').where(
+            filter=FieldFilter("email", "==", email)
+        ).get()
         if len(existing_users) == 0:
             raise ValueError('User with this email does not exist')
 
