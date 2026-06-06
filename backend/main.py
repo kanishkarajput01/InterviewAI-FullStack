@@ -1,10 +1,11 @@
+from io import BytesIO
 import os
 import json
 import uuid
 from typing import List, Optional, Literal, TypedDict
 
 
-from fastapi import FastAPI, HTTPException, Response, Cookie
+from fastapi import FastAPI, File, HTTPException, Response, Cookie, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -495,3 +496,96 @@ async def user_get(id: str):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to get user")
+
+@app.post("/stt")
+async def speech_to_text(audio: UploadFile = File(...)):
+    """
+    🎤 SPEECH-TO-TEXT ENDPOINT
+    
+    Convert speech to text using OpenAI's Whisper API.
+    Accepts audio file and returns transcribed text.
+    
+    Request: Multipart form data with audio file
+    
+    Response example:
+    {
+        "text": "This is my answer to your question...",
+        "language": "en",
+        "duration": 5.2
+    }
+    """
+    try:
+        # ========================================
+        # STEP A: Validate Audio File
+        # ========================================
+        if not audio.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="No audio file provided"
+            )
+        
+        # Check file format (Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm)
+        allowed_extensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm']
+        file_extension = os.path.splitext(audio.filename)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported audio format: {file_extension}. Supported: {', '.join(allowed_extensions)}"
+            )
+        
+        # ========================================
+        # STEP B: Read Audio Data
+        # ========================================
+        audio_data = await audio.read()
+        
+        if len(audio_data) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded audio file is empty"
+            )
+        
+        # ========================================
+        # STEP C: Connect to OpenAI
+        # ========================================
+        client = ChatOpenAI(api_key=OPENAI_API_KEY)
+        
+        # ========================================
+        # STEP D: Transcribe Audio
+        # ========================================
+        # Create file-like object for OpenAI
+        audio_file = BytesIO(audio_data)
+        audio_file.name = audio.filename
+        
+        # Call Whisper API
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            language="en",
+            response_format="verbose_json"
+        )
+        
+        # ========================================
+        # STEP E: Return Transcription
+        # ========================================
+        return {
+            "text": transcript.text,
+            "language": transcript.language,
+            "duration": transcript.duration
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors)
+        raise
+        
+    except Exception as e:
+        # Log error for debugging
+        print(f"STT Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"STT Error: {str(e)}"
+        )
+    
+    finally:
+        # Cleanup - close the uploaded file
+        await audio.close()
