@@ -1,5 +1,6 @@
 from app.src.utils._auth.initialize import db
 from app.src.utils._auth.jwt import create_access_token, create_refresh_token
+from google.cloud.firestore import FieldFilter
 from datetime import datetime
 from pydantic import BaseModel, field_validator
 from app.src.dict import SignupRequest, UserDict, AuthResponse
@@ -44,7 +45,9 @@ def signup(req: SignupRequest) -> AuthResponse:
             raise ValueError('Invalid email found')
         
         # check if user already exists
-        existing_users = db.collection('users').where('email', '==', email).get()
+        existing_users = db.collection('users').where(
+            filter=FieldFilter("email", "==", email)
+        ).get()
         if len(existing_users) > 0:
             raise ValueError('User with this email already exists')
 
