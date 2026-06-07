@@ -21,9 +21,9 @@ import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Home", href: "/#home" },
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
   { label: "AI Interview", href: "/interview" },
 ];
 
@@ -96,22 +96,17 @@ export function Navbar() {
             <AuthDialog
               defaultMode={AuthModeEnum.LOGIN}
               trigger={
-                <span className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                <Button variant="outline" size="xs">
                   Log in
-                </span>
+                </Button>
               }
             />
             <AuthDialog
               defaultMode={AuthModeEnum.SIGNUP}
               trigger={
-                <span
-                  className={cn(
-                    buttonVariants({ size: "sm" }),
-                    "bg-purple-600 text-white hover:bg-purple-700"
-                  )}
-                >
+                <Button variant="default" size="xs">
                   Sign up
-                </span>
+                </Button>
               }
             />
           </div>
@@ -141,7 +136,7 @@ export function Navbar() {
               </DialogTitle>
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="sm"
                 onClick={() => setMobileOpen(false)}
               >
                 <X size={18} />
