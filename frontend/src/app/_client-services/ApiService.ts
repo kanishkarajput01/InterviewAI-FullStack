@@ -14,6 +14,7 @@ enum EApiRoute {
   GET_SESSION = "GET_SESSION",
   SUBMIT_ANSWER = "SUBMIT_ANSWER",
   GET_REPORT = "GET_REPORT",
+  STT = "STT",
 }
 
 export class ApiClientService {
@@ -66,6 +67,10 @@ export class ApiClientService {
       case EApiRoute.GET_REPORT:
         path = "/session";
         method = "GET";
+        break;
+      case EApiRoute.STT:
+        path = "/stt";
+        method = "POST";
         break;
       default:
         throw new Error(`Invalid route: ${route}`);
@@ -239,6 +244,30 @@ export class ApiClientService {
   static async getReport({ sessionId }: { sessionId: string }) {
     const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_REPORT, routeSegments: [sessionId, "report"] });
     return this.apiClientService<IReportResponse>({ url, method });
+  }
+
+  static async transcribeAudio({ audioBlob }: { audioBlob: Blob }): Promise<{ error: string | null; data: { text: string } | null }> {
+    if (!NEXT_PUBLIC_API_URL) {
+      return { error: "API URL is not configured.", data: null };
+    }
+    const { url } = await this.getRouteConfig({ route: EApiRoute.STT });
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "recording.webm");
+    try {
+      const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch { /* ignore parse failure */ }
+        return { error: errorMessage, data: null };
+      }
+      const data = await response.json();
+      return { error: null, data };
+    } catch (err) {
+      return { error: `Network error: ${err instanceof Error ? err.message : "Unknown error"}`, data: null };
+    }
   }
 }
 
