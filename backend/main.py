@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -548,7 +549,7 @@ async def speech_to_text(audio: UploadFile = File(...)):
         # ========================================
         # STEP C: Connect to OpenAI
         # ========================================
-        client = ChatOpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=OPENAI_API_KEY)
         
         # ========================================
         # STEP D: Transcribe Audio
