@@ -45,7 +45,6 @@ export function AnswerInput({
 
       <div className="flex items-center justify-between">
       <Button
-          type="button"
           size="sm"
           onClick={isRecording ? onStopRecording : onStartRecording}
           disabled={inputDisabled}

@@ -146,13 +146,13 @@ function LoginForm({
 
           <p className="text-center text-sm text-muted-foreground">
             New here?{" "}
-            <button
-              type="button"
+            <Button
+              variant="link"
+              size="sm"
               onClick={onSwitch}
-              className="font-semibold text-violet-600 hover:underline"
             >
               Create an account
-            </button>
+            </Button>
           </p>
         </div>
       </form>
@@ -271,13 +271,13 @@ function SignupForm({
 
           <p className="text-center text-sm text-muted-foreground">
             Have an account?{" "}
-            <button
-              type="button"
+            <Button
+              variant="link"
+              size="sm"
               onClick={onSwitch}
-              className="font-semibold text-violet-600 hover:underline"
             >
               Sign in
-            </button>
+            </Button>
           </p>
         </div>
       </form>
@@ -311,7 +311,7 @@ export function AuthDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger className="cursor-pointer">{trigger}</DialogTrigger>
+      <DialogTrigger render={trigger as React.ReactElement} />
       <DialogContent
         className="overflow-hidden p-0 sm:max-w-sm"
         showCloseButton
