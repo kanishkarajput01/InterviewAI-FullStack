@@ -56,3 +56,13 @@ export interface IUser {
     final_report: string;
     interview_complete: boolean;
   }
+
+  export enum SessionPhaseEnum {
+    LOADING = "loading",
+    ANSWERING = "answering",
+    SUBMITTING = "submitting",
+    FEEDBACK = "feedback",
+    FETCHING_REPORT = "fetching-report",
+    REPORT = "report",
+    ERROR = "error",
+  }

@@ -100,7 +100,6 @@ export default function SkillBasedPage() {
                   className="h-10"
                 />
                 <Button
-                  type="button"
                   onClick={handleAddSkill}
                   variant="outline"
                   className="h-10 gap-2 border-violet-200 text-violet-600 hover:bg-violet-50"
@@ -119,13 +118,13 @@ export default function SkillBasedPage() {
                       className="inline-flex items-center gap-1.5 rounded-lg bg-violet-100 px-3 py-1.5 text-sm font-medium text-violet-700"
                     >
                       {skill}
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
                         onClick={() => removeSkill(skill)}
                         className="rounded hover:bg-violet-200"
                       >
                         <X className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </div>
@@ -136,9 +135,8 @@ export default function SkillBasedPage() {
                 <p className="mb-2 text-xs text-slate-500">Suggested:</p>
                 <div className="flex flex-wrap gap-2">
                   {SUGGESTED_SKILLS.map((skill) => (
-                    <button
+                    <Button
                       key={skill}
-                      type="button"
                       onClick={() => addSuggestedSkill(skill)}
                       disabled={skills.includes(skill)}
                       className={cn(
@@ -149,7 +147,7 @@ export default function SkillBasedPage() {
                       )}
                     >
                       + {skill}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
