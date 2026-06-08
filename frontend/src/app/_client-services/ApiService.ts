@@ -222,12 +222,12 @@ export class ApiClientService {
     }
   }
 
-  static async createSession({ jobRole, experience }: ICreateSessionRequest) {
+  static async createSession({ jobRole, experience, isPublic }: ICreateSessionRequest) {
     const { url, method } = await this.getRouteConfig({ route: EApiRoute.CREATE_SESSION });
     return this.apiClientService<ICreateSessionResponse>({
       url,
       method,
-      data: { job_role: jobRole, experience },
+      data: { job_role: jobRole, experience, is_public: isPublic },
     });
   }
 

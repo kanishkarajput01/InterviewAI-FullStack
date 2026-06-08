@@ -18,6 +18,7 @@ export interface IUser {
   export interface ICreateSessionRequest {
     jobRole: string;
     experience: number;
+    isPublic: boolean;
   }
 
   export interface IInterviewQA {

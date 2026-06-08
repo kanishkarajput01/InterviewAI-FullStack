@@ -158,6 +158,7 @@ class SessionResponse(BaseModel):
     job_role: str
     experience: int
     current_question_idx: int
+    is_public: bool
 # ---------------------------
 # LangGraph Nodes
 # ---------------------------
@@ -298,6 +299,7 @@ compiled_graph = workflow.compile(checkpointer=checkpointer)
 class CreateSessionRequest(BaseModel):
     job_role: str = Field(..., example="Research Engineer")
     experience: int = Field(..., example=1)
+    is_public: bool = Field(default=False)
 
 class CreateSessionResponse(BaseModel):
         id: str
@@ -305,6 +307,7 @@ class CreateSessionResponse(BaseModel):
         job_role: str
         experience: int
         current_question_idx: int
+        is_public: bool
 
 class GetSessionRequest(BaseModel):
     session_id: str
@@ -336,7 +339,8 @@ async def create_session(req: CreateSessionRequest):
         "interview_complete": False,
         "final_report": "",
         "last_question": "",
-        "last_answer": None
+        "last_answer": None,
+        "is_public": req.is_public,
     }
 
     compiled_graph.invoke(initial_state, config=config)
@@ -349,6 +353,7 @@ async def create_session(req: CreateSessionRequest):
         job_role=values["job_role"],
         experience=values["experience"],
         current_question_idx=values.get("current_question_idx", 0),
+        is_public=values.get("is_public", False),
     )
 
 
@@ -363,6 +368,7 @@ async def get_session(session_id: str):
         job_role=values["job_role"],
         experience=values["experience"],
         current_question_idx=values.get("current_question_idx", 0),
+        is_public=values.get("is_public", False),
     )
 
 @app.post("/session/{session_id}/answers")

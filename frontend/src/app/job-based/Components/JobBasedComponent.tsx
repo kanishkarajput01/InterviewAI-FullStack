@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Globe, Lock, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
@@ -26,6 +26,7 @@ export default function JobBasedComponent() {
   const [form, setForm] = useState({
     jobTitle: "",
     experienceLevel: 1,
+    isPublic: false,
   });
   const router = useRouter();
   const [showAuth, setShowAuth] = useState(false);
@@ -53,6 +54,7 @@ export default function JobBasedComponent() {
     const { data, error: apiError } = await ApiClientService.createSession({
       jobRole,
       experience,
+      isPublic: form.isPublic,
     });
     if(apiError || !data) {
       setIsSubmitting(false);
@@ -129,6 +131,74 @@ export default function JobBasedComponent() {
                       <span className="text-sm font-semibold text-slate-900">
                         {label}
                       </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="mb-3 block text-sm font-medium text-slate-900">
+                Visibility
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  {
+                    isPublicValue: false,
+                    label: "Private",
+                    description: "Only visible to you",
+                    Icon: Lock,
+                    bgColor: "bg-slate-50",
+                    borderColor: "peer-checked:border-slate-500",
+                    iconColor: "peer-checked:[&_svg]:text-slate-500",
+                    ringColor: "peer-checked:[&_[data-radio-ring]]:border-slate-500",
+                    dotColor: "peer-checked:[&_[data-radio-dot]]:bg-slate-500 peer-checked:[&_[data-radio-dot]]:scale-100",
+                  },
+                  {
+                    isPublicValue: true,
+                    label: "Public",
+                    description: "Anyone can view this interview",
+                    Icon: Globe,
+                    bgColor: "bg-violet-50",
+                    borderColor: "peer-checked:border-violet-500",
+                    iconColor: "peer-checked:[&_svg]:text-violet-500",
+                    ringColor: "peer-checked:[&_[data-radio-ring]]:border-violet-500",
+                    dotColor: "peer-checked:[&_[data-radio-dot]]:bg-violet-500 peer-checked:[&_[data-radio-dot]]:scale-100",
+                  },
+                ].map(({ isPublicValue, label, description, Icon, bgColor, borderColor, iconColor, ringColor, dotColor }) => (
+                  <label key={label} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      checked={form.isPublic === isPublicValue}
+                      className="peer sr-only"
+                      onChange={() => setForm((f) => ({ ...f, isPublic: isPublicValue }))}
+                    />
+                    <div
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border-2 px-4 py-4 transition-all",
+                        bgColor,
+                        "border-transparent",
+                        borderColor,
+                        iconColor,
+                        ringColor,
+                        dotColor
+                      )}
+                    >
+                      <Icon className="h-5 w-5 shrink-0 text-slate-300" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-slate-900">{label}</p>
+                        <p className="text-xs text-slate-500">{description}</p>
+                      </div>
+                      <div
+                        data-radio-ring=""
+                        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 transition-colors"
+                      >
+                        <div
+                          data-radio-dot=""
+                          className="h-2 w-2 scale-0 rounded-full transition-transform"
+                        />
+                      </div>
                     </div>
                   </label>
                 ))}
