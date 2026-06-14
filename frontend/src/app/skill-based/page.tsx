@@ -56,7 +56,7 @@ export default function SkillBasedPage() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-3.5rem)] items-center justify-center bg-linear-to-br from-slate-50 to-violet-50/30 px-4 py-12">
+    <div className="relative flex min-h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-violet-50/30 px-4 py-12">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-violet-200/30 blur-3xl" />
