@@ -3,7 +3,7 @@
 import { ArrowRight, Award, Briefcase, CheckCircle, TrendingUp, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import type { IReportResponse, ISession } from "@/_shared/types";
+import type { IReportResponse, IInterview } from "@/_shared/types";
 import { Button } from "@/app/_shared-components/Button";
 import { useUser } from "@/app/contexts/UserContext";
 
@@ -14,7 +14,7 @@ const NEXT_STEPS = [
   "Share your achievements with your network",
 ];
 
-export function ReportView({ report, session }: { report: IReportResponse; session: ISession }) {
+export function ReportView({ report, interview }: { report: IReportResponse; interview: IInterview }) {
   const router = useRouter();
   const { user } = useUser();
 
@@ -62,7 +62,7 @@ export function ReportView({ report, session }: { report: IReportResponse; sessi
               <Briefcase className="h-4 w-4 shrink-0 text-violet-500" />
               <div>
                 <p className="text-xs text-slate-500">Job Role</p>
-                <p className="text-sm font-semibold text-slate-900">{session.job_role}</p>
+                <p className="text-sm font-semibold text-slate-900">{interview.job_role}</p>
               </div>
             </div>
 
@@ -71,7 +71,7 @@ export function ReportView({ report, session }: { report: IReportResponse; sessi
               <div>
                 <p className="text-xs text-slate-500">Experience Level</p>
                 <p className="text-sm font-semibold text-slate-900">
-                  {session.experience} {session.experience === 1 ? "year" : "years"}
+                    {interview.experience} {interview.experience === 1 ? "year" : "years"}
                 </p>
               </div>
             </div>

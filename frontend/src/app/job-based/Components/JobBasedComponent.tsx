@@ -50,7 +50,7 @@ export default function JobBasedComponent() {
       return;
     }
     setIsSubmitting(true);
-    const { data, error: apiError } = await ApiClientService.createSession({
+    const { data, error: apiError } = await ApiClientService.createInterview({
       jobRole,
       experience,
     });
@@ -59,7 +59,7 @@ export default function JobBasedComponent() {
       return;
     }
     setIsSubmitting(false);
-    router.push(`/session/${data.id}`);
+    router.push(`/interview/${data.id}`);
   };
 
   return (
@@ -81,7 +81,7 @@ export default function JobBasedComponent() {
             Design your <span className="text-violet-600">interview</span>
           </h1>
           <p className="text-base text-slate-600">
-            Pick what you want to practice. We&apos;ll build a tailored session.
+            Pick what you want to practice. We&apos;ll build a tailored interview.
           </p>
         </div>
 

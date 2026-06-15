@@ -22,7 +22,7 @@ const tiers: PricingTier[] = [
     price: "$0",
     description: "Get started with no commitment.",
     features: [
-      "5 practice sessions / month",
+      "5 practice interviews / month",
       "Standard question bank",
       "Basic AI feedback",
       "Text answers only",
@@ -36,11 +36,11 @@ const tiers: PricingTier[] = [
     period: "/ month",
     description: "Everything you need to land the offer.",
     features: [
-      "Unlimited sessions",
+      "Unlimited interviews",
       "Voice answer + transcription",
       "Deep AI feedback & scoring",
       "Skill & job-based modes",
-      "Full session history",
+      "Full interview history",
       "Progress analytics",
     ],
     cta: "Go Pro",

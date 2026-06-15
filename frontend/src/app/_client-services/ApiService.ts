@@ -1,4 +1,4 @@
-import type { ICreateSessionRequest, ICreateSessionResponse, IReportResponse, ISession, ISubmitAnswerResponse, IUser } from "@/_shared/types";
+import type { ICreateInterviewRequest, ICreateInterviewResponse, IReportResponse, IInterview, ISubmitAnswerResponse, IUser } from "@/_shared/types";
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -10,8 +10,8 @@ enum EApiRoute {
   REFRESH = "REFRESH",
   ME = "ME",
   LOGOUT = "LOGOUT",
-  CREATE_SESSION = "CREATE_SESSION",
-  GET_SESSION = "GET_SESSION",
+  CREATE_INTERVIEW = "CREATE_INTERVIEW",
+  GET_INTERVIEW = "GET_INTERVIEW",
   SUBMIT_ANSWER = "SUBMIT_ANSWER",
   GET_REPORT = "GET_REPORT",
   STT = "STT",
@@ -52,20 +52,20 @@ export class ApiClientService {
         path = "/logout";
         method = "POST";
         break;
-      case EApiRoute.CREATE_SESSION:
-        path = "/create-session";
+      case EApiRoute.CREATE_INTERVIEW:
+        path = "/create-interview";
         method = "POST";
         break;
-      case EApiRoute.GET_SESSION:
-        path = "/session";
+      case EApiRoute.GET_INTERVIEW:
+        path = "/interview";
         method = "GET";
         break;
       case EApiRoute.SUBMIT_ANSWER:
-        path = "/session";
+        path = "/interview";
         method = "POST";
         break;
       case EApiRoute.GET_REPORT:
-        path = "/session";
+        path = "/interview";
         method = "GET";
         break;
       case EApiRoute.STT:
@@ -222,27 +222,27 @@ export class ApiClientService {
     }
   }
 
-  static async createSession({ jobRole, experience }: ICreateSessionRequest) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.CREATE_SESSION });
-    return this.apiClientService<ICreateSessionResponse>({
+  static async createInterview({ jobRole, experience }: ICreateInterviewRequest) {
+    const { url, method } = await this.getRouteConfig({ route: EApiRoute.CREATE_INTERVIEW });
+    return this.apiClientService<ICreateInterviewResponse>({
       url,
       method,
       data: { job_role: jobRole, experience },
     });
   }
 
-  static async getSession({ sessionId }: { sessionId: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_SESSION, routeSegments: [sessionId] });
-    return this.apiClientService<ISession>({ url, method });
+  static async getInterview({ interviewId }: { interviewId: string }) {
+    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_INTERVIEW, routeSegments: [interviewId] });
+    return this.apiClientService<IInterview>({ url, method });
   }
 
-  static async submitAnswer({ sessionId, answer }: { sessionId: string; answer: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.SUBMIT_ANSWER, routeSegments: [sessionId, "answers"] });
+  static async submitAnswer({ interviewId, answer }: { interviewId: string; answer: string }) {
+    const { url, method } = await this.getRouteConfig({ route: EApiRoute.SUBMIT_ANSWER, routeSegments: [interviewId, "answers"] });
     return this.apiClientService<ISubmitAnswerResponse>({ url, method, data: { answer } });
   }
 
-  static async getReport({ sessionId }: { sessionId: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_REPORT, routeSegments: [sessionId, "report"] });
+  static async getReport({ interviewId }: { interviewId: string }) {
+    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_REPORT, routeSegments: [interviewId, "report"] });
     return this.apiClientService<IReportResponse>({ url, method });
   }
 
