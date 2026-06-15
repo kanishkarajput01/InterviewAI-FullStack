@@ -74,7 +74,7 @@ export default function SkillBasedPage() {
             Design your <span className="text-violet-600">interview</span>
           </h1>
           <p className="text-base text-slate-600">
-            Pick what you want to practice. We&apos;ll build a tailored session.
+            Pick what you want to practice. We&apos;ll build a tailored interview.
           </p>
         </div>
 

@@ -34,12 +34,12 @@ const features: Feature[] = [
   {
     icon: BarChart2,
     title: "Progress Tracking",
-    description: "Watch your scores climb across sessions with detailed analytics.",
+    description: "Watch your scores climb across interviews with detailed analytics.",
   },
   {
     icon: ShieldCheck,
     title: "Private by Default",
-    description: "Your sessions stay yours. We never share your recordings.",
+    description: "Your interviews stay yours. We never share your recordings.",
   },
 ];
 

@@ -4,21 +4,21 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { type ISession, SessionPhaseEnum } from "@/_shared/types";
+import { type IInterview, InterviewPhaseEnum } from "@/_shared/types";
 import ApiClientService from "@/app/_client-services/ApiService";
 import { ErrorState } from "@/app/_shared-components/ErrorState";
 
 import { AnswerInput } from "./AnswerInput";
 import { FeedbackView } from "./FeedbackView";
+import { InterviewHeader } from "./InterviewHeader";
 import { LoadingState } from "./LoadingState";
-import { SessionHeader } from "./SessionHeader";
 
 const TOTAL_QUESTIONS = 5;
 
-export default function SessionComponent({ sessionId }: { sessionId: string }) {
+export default function InterviewComponent({ interviewId }: { interviewId: string }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<SessionPhaseEnum>(SessionPhaseEnum.LOADING);
-  const [session, setSession] = useState<ISession | null>(null);
+  const [phase, setPhase] = useState<InterviewPhaseEnum>(InterviewPhaseEnum.LOADING);
+  const [interview, setInterview] = useState<IInterview | null>(null);
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -30,31 +30,31 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    ApiClientService.getSession({ sessionId }).then(({ data, error: err }) => {
+    ApiClientService.getInterview({ interviewId }).then(({ data, error: err }) => {
       if (err || !data) {
-        setError(err ?? "Failed to load session");
-        setPhase(SessionPhaseEnum.ERROR);
+        setError(err ?? "Failed to load interview");
+        setPhase(InterviewPhaseEnum.ERROR);
         return;
       }
-      setSession(data);
+      setInterview(data);
       setCurrentQIdx(data.current_question_idx);
-      setPhase(SessionPhaseEnum.ANSWERING);
+      setPhase(InterviewPhaseEnum.ANSWERING);
     });
-  }, [sessionId]);
+  }, [interviewId]);
 
   const handleSubmit = async () => {
-    if (!answer.trim() || !session) return;
-    setPhase(SessionPhaseEnum.SUBMITTING);
+    if (!answer.trim() || !interview) return;
+    setPhase(InterviewPhaseEnum.SUBMITTING);
 
-    const { data, error: err } = await ApiClientService.submitAnswer({ sessionId, answer: answer.trim() });
+    const { data, error: err } = await ApiClientService.submitAnswer({ interviewId, answer: answer.trim() });
     if (err || !data) {
       setError(err ?? "Failed to submit answer");
-      setPhase(SessionPhaseEnum.ERROR);
+      setPhase(InterviewPhaseEnum.ERROR);
       return;
     }
 
     setFeedback(data.feedback);
-    setPhase(SessionPhaseEnum.FEEDBACK);
+    setPhase(InterviewPhaseEnum.FEEDBACK);
   };
 
   const transcribeAudio = async () => {
@@ -105,24 +105,24 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
   };
 
   const handleNext = async () => {
-    if (!session) return;
+    if (!interview) return;
     const nextIdx = currentQIdx + 1;
 
     if (nextIdx >= TOTAL_QUESTIONS) {
-      router.push(`/session/${sessionId}/report`);
+      router.push(`/interview/${interviewId}/report`);
     } else {
       setCurrentQIdx(nextIdx);
       setAnswer("");
       setFeedback("");
-      setPhase(SessionPhaseEnum.ANSWERING);
+      setPhase(InterviewPhaseEnum.ANSWERING);
     }
   };
 
-  if (phase === SessionPhaseEnum.LOADING) return <LoadingState />;
-  if (phase === SessionPhaseEnum.ERROR) return <ErrorState error={error} />;
-  if (!session) return null;
+  if (phase === InterviewPhaseEnum.LOADING) return <LoadingState />;
+  if (phase === InterviewPhaseEnum.ERROR) return <ErrorState error={error} />;
+  if (!interview) return null;
 
-  const currentQuestion = session.data[currentQIdx]?.question ?? "";
+  const currentQuestion = interview.data[currentQIdx]?.question ?? "";
   const isLastQuestion = currentQIdx === TOTAL_QUESTIONS - 1;
 
   return (
@@ -133,9 +133,9 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="mx-auto max-w-2xl">
-        <SessionHeader
-          jobRole={session.job_role}
-          experience={session.experience}
+        <InterviewHeader
+          jobRole={interview.job_role}
+          experience={interview.experience}
           currentQIdx={currentQIdx}
           totalQuestions={TOTAL_QUESTIONS}
         />
@@ -148,11 +148,11 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
             <p className="text-lg font-semibold leading-relaxed text-slate-900">{currentQuestion}</p>
           </div>
 
-          {(phase === SessionPhaseEnum.ANSWERING || phase === SessionPhaseEnum.SUBMITTING) && (
+          {(phase === InterviewPhaseEnum.ANSWERING || phase === InterviewPhaseEnum.SUBMITTING) && (
             <AnswerInput
               answer={answer}
               onAnswerChange={setAnswer}
-              isSubmitting={phase === SessionPhaseEnum.SUBMITTING}
+              isSubmitting={phase === InterviewPhaseEnum.SUBMITTING}
               isRecording={isRecording}
               isTranscribing={isTranscribing}
               recordingError={recordingError}
@@ -162,7 +162,7 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
             />
           )}
 
-          {phase === SessionPhaseEnum.FEEDBACK && (
+          {phase === InterviewPhaseEnum.FEEDBACK && (
             <FeedbackView
               answer={answer}
               feedback={feedback}
@@ -171,7 +171,7 @@ export default function SessionComponent({ sessionId }: { sessionId: string }) {
             />
           )}
 
-          {phase === SessionPhaseEnum.FETCHING_REPORT && (
+          {phase === InterviewPhaseEnum.FETCHING_REPORT && (
             <div className="flex items-center justify-center py-8 gap-3 text-slate-600">
               <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
               <span className="text-sm">Generating your report...</span>

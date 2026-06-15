@@ -15,7 +15,7 @@ export interface IUser {
     SIGNUP = "signup",
   }
 
-  export interface ICreateSessionRequest {
+  export interface ICreateInterviewRequest {
     jobRole: string;
     experience: number;
   }
@@ -26,7 +26,7 @@ export interface IUser {
     feedback: string;
   }
 
-  export interface ISession {
+  export interface IInterview {
     id: string;
     job_role: string;
     experience: number;
@@ -34,7 +34,7 @@ export interface IUser {
     data: IInterviewQA[];
   }
 
-  export interface ICreateSessionResponse {
+  export interface ICreateInterviewResponse {
     id: string;
     questions: string[];
     job_role: string;
@@ -57,7 +57,7 @@ export interface IUser {
     interview_complete: boolean;
   }
 
-  export enum SessionPhaseEnum {
+  export enum InterviewPhaseEnum {
     LOADING = "loading",
     ANSWERING = "answering",
     SUBMITTING = "submitting",

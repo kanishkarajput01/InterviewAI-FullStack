@@ -1,13 +1,13 @@
 import { BrainCog } from "lucide-react";
 
-interface SessionHeaderProps {
+interface InterviewHeaderProps {
   jobRole: string;
   experience: number;
   currentQIdx: number;
   totalQuestions: number;
 }
 
-export function SessionHeader({ jobRole, experience, currentQIdx, totalQuestions }: SessionHeaderProps) {
+export function InterviewHeader({ jobRole, experience, currentQIdx, totalQuestions }: InterviewHeaderProps) {
   const progressPct = (currentQIdx / totalQuestions) * 100;
 
   return (
