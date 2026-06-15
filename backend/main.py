@@ -30,7 +30,7 @@ app = FastAPI(title="AI Interviewer Backend", version="0.1.0")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
+    allow_origins=["http://localhost:3001", "http://127.0.0.1:3000"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -152,7 +152,7 @@ class InterviewState(TypedDict):
     last_question: str
     last_answer: Optional[str]  # For API input
 
-class SessionResponse(BaseModel):
+class InterviewResponse(BaseModel):
     id: str
     data: List[InterviewQA]
     job_role: str
@@ -290,24 +290,21 @@ workflow.add_edge("generate_questions", "ask_question")
 workflow.add_edge("ask_question", END)
 
 
-# Compile with memory checkpointer for session persistence
+# Compile with memory checkpointer for interview persistence
 checkpointer = MemorySaver()
 compiled_graph = workflow.compile(checkpointer=checkpointer)
 
 
-class CreateSessionRequest(BaseModel):
+class CreateInterviewRequest(BaseModel):
     job_role: str = Field(..., example="Research Engineer")
     experience: int = Field(..., example=1)
 
-class CreateSessionResponse(BaseModel):
+class CreateInterviewResponse(BaseModel):
         id: str
         questions: List[str]
         job_role: str
         experience: int
         current_question_idx: int
-
-class GetSessionRequest(BaseModel):
-    session_id: str
 
 class SubmitAnswerRequest(BaseModel):
     answer: str
@@ -324,10 +321,10 @@ class ReportResponse(BaseModel):
     final_report: str
     interview_complete: bool
 
-@app.post("/create-session")
-async def create_session(req: CreateSessionRequest):
-    session_id = str(uuid.uuid4())
-    config = {"configurable": {"thread_id": session_id}}
+@app.post("/create-interview")
+async def create_interview(req: CreateInterviewRequest):
+    interview_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": interview_id}}
     initial_state: InterviewState = {
         "job_role": req.job_role,
         "experience": req.experience,
@@ -343,8 +340,8 @@ async def create_session(req: CreateSessionRequest):
     state = compiled_graph.get_state(config)
     values = state.values
     questions = [row["question"] for row in values.get("data", [])]
-    return CreateSessionResponse(
-        id= session_id,
+    return CreateInterviewResponse(
+        id= interview_id,
         questions=questions,
         job_role=values["job_role"],
         experience=values["experience"],
@@ -352,22 +349,22 @@ async def create_session(req: CreateSessionRequest):
     )
 
 
-@app.get("/session/{session_id}")
-async def get_session(session_id: str):
-    config = {"configurable": {"thread_id": session_id}}
+@app.get("/interview/{interview_id}")
+async def get_interview(interview_id: str):
+    config = {"configurable": {"thread_id": interview_id}}
     state = compiled_graph.get_state(config)
     values = state.values
-    return SessionResponse(
-        id=session_id,
+    return InterviewResponse(
+        id=interview_id,
         data=values["data"],
         job_role=values["job_role"],
         experience=values["experience"],
         current_question_idx=values.get("current_question_idx", 0),
     )
 
-@app.post("/session/{session_id}/answers")
-async def post_answers(session_id: str, req: SubmitAnswerRequest):
-    config = {"configurable": {"thread_id": session_id}}
+@app.post("/interview/{interview_id}/answers")
+async def post_answers(interview_id: str, req: SubmitAnswerRequest):
+    config = {"configurable": {"thread_id": interview_id}}
     state = compiled_graph.get_state(config)
     
     values = state.values
@@ -395,9 +392,9 @@ async def post_answers(session_id: str, req: SubmitAnswerRequest):
         next_question_idx=next_question_idx,
     )
 
-@app.get("/session/{session_id}/report")
-async def get_report(session_id: str):
-    config = {"configurable": {"thread_id": session_id}}
+@app.get("/interview/{interview_id}/report")
+async def get_report(interview_id: str):
+    config = {"configurable": {"thread_id": interview_id}}
     state = compiled_graph.get_state(config)
     values = state.values
     return ReportResponse(
