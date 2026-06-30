@@ -196,22 +196,26 @@ export function Navbar() {
                   <AuthDialog
                     defaultMode={AuthModeEnum.LOGIN}
                     trigger={
-                      <span className={cn(buttonVariants({ variant: "outline" }))}>
+                      <button
+                        type="button"
+                        className={cn(buttonVariants({ variant: "outline" }))}
+                      >
                         Log in
-                      </span>
+                      </button>
                     }
                   />
                   <AuthDialog
                     defaultMode={AuthModeEnum.SIGNUP}
                     trigger={
-                      <span
+                      <button
+                        type="button"
                         className={cn(
                           buttonVariants(),
                           "bg-purple-600 text-white hover:bg-purple-700"
                         )}
                       >
                         Sign up
-                      </span>
+                      </button>
                     }
                   />
                 </>

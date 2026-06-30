@@ -131,7 +131,8 @@ export function PricingSection() {
                   <AuthDialog
                     defaultMode={AuthModeEnum.SIGNUP}
                     trigger={
-                      <span
+                      <button
+                        type="button"
                         className={cn(
                           buttonVariants({ size: "sm" }),
                           "w-full justify-center",
@@ -141,7 +142,7 @@ export function PricingSection() {
                         )}
                       >
                         {tier.cta}
-                      </span>
+                      </button>
                     }
                   />
                 </div>
