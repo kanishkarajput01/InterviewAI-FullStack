@@ -1,10 +1,15 @@
 "use client";
 
 import { ArrowRight, Plus, Sparkles, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 
+import { AuthModeEnum } from "@/_shared/types";
+import ApiClientService from "@/app/_client-services/ApiService";
+import { AuthDialog } from "@/app/_shared-components/AuthDialog";
 import { Button } from "@/app/_shared-components/Button";
 import { Input } from "@/app/_shared-components/Input";
+import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
 const SUGGESTED_SKILLS = [
@@ -17,8 +22,12 @@ const SUGGESTED_SKILLS = [
 ];
 
 export default function SkillBasedPage() {
+  const { user } = useUser();
+  const router = useRouter();
   const [skills, setSkills] = useState<string[]>(["System Design", "TypeScript"]);
   const [skillInput, setSkillInput] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddSkill = () => {
     if (skillInput.trim() && !skills.includes(skillInput.trim())) {
@@ -44,15 +53,30 @@ export default function SkillBasedPage() {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    if (!user) {
+      setShowAuth(true);
+      return;
+    }
+    if (skills.length === 0) return;
 
-    const _data = {
-      mode: "skill",
-      skills,
-      experienceLevel: formData.get("experienceLevel"),
-    };
+    const skillLabel = skills.join(", ");
+    setIsSubmitting(true);
+    const { data: interview, error: apiError } = await ApiClientService.createInterview({
+      title: `${skillLabel} Interview`,
+      description: `Skill-based interview practice covering: ${skillLabel}.`,
+      type: "skill",
+      skill: skillLabel,
+      visibility: "private",
+    });
+    if (apiError || !interview) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    setIsSubmitting(false);
+    router.push(`/interviews/${interview.id}`);
   };
 
   return (
@@ -81,10 +105,6 @@ export default function SkillBasedPage() {
         {/* Main card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
           <form onSubmit={handleSubmit}>
-            {skills.map((skill, index) => (
-              <input key={skill} type="hidden" name={`skills[${index}]`} value={skill} />
-            ))}
-
             <div className="mb-6">
               <label className="mb-3 block text-sm font-medium text-slate-900">
                 Skills to practice
@@ -100,6 +120,7 @@ export default function SkillBasedPage() {
                   className="h-10"
                 />
                 <Button
+                  type="button"
                   onClick={handleAddSkill}
                   variant="outline"
                   className="h-10 gap-2 border-violet-200 text-violet-600 hover:bg-violet-50"
@@ -119,6 +140,7 @@ export default function SkillBasedPage() {
                     >
                       {skill}
                       <Button
+                        type="button"
                         variant="ghost"
                         onClick={() => removeSkill(skill)}
                         className="rounded hover:bg-violet-200"
@@ -137,6 +159,7 @@ export default function SkillBasedPage() {
                   {SUGGESTED_SKILLS.map((skill) => (
                     <Button
                       key={skill}
+                      type="button"
                       onClick={() => addSuggestedSkill(skill)}
                       disabled={skills.includes(skill)}
                       className={cn(
@@ -157,6 +180,8 @@ export default function SkillBasedPage() {
             <div className="flex justify-end">
               <Button
                 type="submit"
+                loading={isSubmitting}
+                disabled={skills.length === 0}
                 className="h-11 gap-2 rounded-lg bg-violet-600 px-6 text-sm font-semibold text-white hover:bg-violet-700"
               >
                 Continue
@@ -164,6 +189,12 @@ export default function SkillBasedPage() {
               </Button>
             </div>
           </form>
+
+          <AuthDialog
+            defaultMode={AuthModeEnum.LOGIN}
+            open={showAuth}
+            onOpenChange={setShowAuth}
+          />
         </div>
       </div>
     </div>

@@ -128,6 +128,16 @@ export default function InterviewComponent() {
                 </p>
               </button>
             </div>
+
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => router.push("/interviews")}
+                className="text-sm font-medium text-violet-600 hover:text-violet-700 hover:underline"
+              >
+                Or browse existing interviews →
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -4,24 +4,28 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { type IInterview, InterviewPhaseEnum } from "@/_shared/types";
+import {
+  type IAnswer,
+  type IInterview,
+  type IInterviewQuestion,
+  InterviewPhaseEnum,
+} from "@/_shared/types";
 import ApiClientService from "@/app/_client-services/ApiService";
 import { ErrorState } from "@/app/_shared-components/ErrorState";
 
 import { AnswerInput } from "./AnswerInput";
+import { AttemptHeader } from "./AttemptHeader";
 import { FeedbackView } from "./FeedbackView";
-import { InterviewHeader } from "./InterviewHeader";
 import { LoadingState } from "./LoadingState";
 
-const TOTAL_QUESTIONS = 5;
-
-export default function InterviewComponent({ interviewId }: { interviewId: string }) {
+export default function AttemptComponent({ attemptId }: { attemptId: string }) {
   const router = useRouter();
   const [phase, setPhase] = useState<InterviewPhaseEnum>(InterviewPhaseEnum.LOADING);
   const [interview, setInterview] = useState<IInterview | null>(null);
+  const [questions, setQuestions] = useState<IInterviewQuestion[]>([]);
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [result, setResult] = useState<Pick<IAnswer, "answer" | "feedback" | "score"> | null>(null);
   const [error, setError] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -30,30 +34,83 @@ export default function InterviewComponent({ interviewId }: { interviewId: strin
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    ApiClientService.getInterview({ interviewId }).then(({ data, error: err }) => {
-      if (err || !data) {
-        setError(err ?? "Failed to load interview");
+    let cancelled = false;
+
+    const load = async () => {
+      const { data: attempt, error: attemptErr } = await ApiClientService.getAttempt({ attemptId });
+      if (cancelled) return;
+      if (attemptErr || !attempt) {
+        setError(attemptErr ?? "Failed to load attempt");
         setPhase(InterviewPhaseEnum.ERROR);
         return;
       }
-      setInterview(data);
-      setCurrentQIdx(data.current_question_idx);
+
+      if (attempt.status === "completed") {
+        router.replace(`/attempt/${attemptId}/report`);
+        return;
+      }
+
+      const [interviewRes, answersRes] = await Promise.all([
+        ApiClientService.getInterview({ interviewId: attempt.interview_id }),
+        ApiClientService.listAnswers({ attemptId }),
+      ]);
+      if (cancelled) return;
+
+      if (interviewRes.error || !interviewRes.data) {
+        setError(interviewRes.error ?? "Failed to load interview");
+        setPhase(InterviewPhaseEnum.ERROR);
+        return;
+      }
+
+      const sorted = [...interviewRes.data.questions].sort((a, b) => a.order - b.order);
+      if (sorted.length === 0) {
+        setError("This interview has no questions.");
+        setPhase(InterviewPhaseEnum.ERROR);
+        return;
+      }
+
+      const answeredCount = answersRes.data?.length ?? 0;
+      // Resume at the attempt's saved position, clamped to a valid question.
+      const resumeIdx = Math.min(
+        Math.max(attempt.current_q_index, 0),
+        sorted.length - 1
+      );
+
+      // Every question already answered -> straight to the report.
+      if (answeredCount >= sorted.length) {
+        router.replace(`/attempt/${attemptId}/report`);
+        return;
+      }
+
+      setInterview(interviewRes.data);
+      setQuestions(sorted);
+      setCurrentQIdx(resumeIdx);
       setPhase(InterviewPhaseEnum.ANSWERING);
-    });
-  }, [interviewId]);
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptId, router]);
 
   const handleSubmit = async () => {
-    if (!answer.trim() || !interview) return;
+    const question = questions[currentQIdx];
+    if (!answer.trim() || !question) return;
     setPhase(InterviewPhaseEnum.SUBMITTING);
 
-    const { data, error: err } = await ApiClientService.submitAnswer({ interviewId, answer: answer.trim() });
+    const { data, error: err } = await ApiClientService.submitAnswer({
+      attemptId,
+      questionId: question.question_id,
+      answer: answer.trim(),
+    });
     if (err || !data) {
       setError(err ?? "Failed to submit answer");
       setPhase(InterviewPhaseEnum.ERROR);
       return;
     }
 
-    setFeedback(data.feedback);
+    setResult({ answer: data.answer, feedback: data.feedback, score: data.score });
     setPhase(InterviewPhaseEnum.FEEDBACK);
   };
 
@@ -105,25 +162,34 @@ export default function InterviewComponent({ interviewId }: { interviewId: strin
   };
 
   const handleNext = async () => {
-    if (!interview) return;
     const nextIdx = currentQIdx + 1;
 
-    if (nextIdx >= TOTAL_QUESTIONS) {
-      router.push(`/interview/${interviewId}/report`);
-    } else {
-      setCurrentQIdx(nextIdx);
-      setAnswer("");
-      setFeedback("");
-      setPhase(InterviewPhaseEnum.ANSWERING);
+    if (nextIdx >= questions.length) {
+      // Last question answered: finalize the attempt then show the report.
+      setPhase(InterviewPhaseEnum.FETCHING_REPORT);
+      const { error: err } = await ApiClientService.generateReport({ attemptId });
+      if (err) {
+        setError(err);
+        setPhase(InterviewPhaseEnum.ERROR);
+        return;
+      }
+      router.push(`/attempt/${attemptId}/report`);
+      return;
     }
+
+    setCurrentQIdx(nextIdx);
+    setAnswer("");
+    setResult(null);
+    setPhase(InterviewPhaseEnum.ANSWERING);
   };
 
   if (phase === InterviewPhaseEnum.LOADING) return <LoadingState />;
   if (phase === InterviewPhaseEnum.ERROR) return <ErrorState error={error} />;
   if (!interview) return null;
 
-  const currentQuestion = interview.data[currentQIdx]?.question ?? "";
-  const isLastQuestion = currentQIdx === TOTAL_QUESTIONS - 1;
+  const currentQuestion = questions[currentQIdx]?.text ?? "";
+  const isLastQuestion = currentQIdx === questions.length - 1;
+  const subtitle = interview.type === "job" ? interview.role : interview.skill;
 
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)] overflow-x-hidden bg-linear-to-br from-slate-50 to-violet-50/30 px-4 py-12">
@@ -133,11 +199,11 @@ export default function InterviewComponent({ interviewId }: { interviewId: strin
       </div>
 
       <div className="mx-auto max-w-2xl">
-        <InterviewHeader
-          jobRole={interview.job_role}
-          experience={interview.experience}
+        <AttemptHeader
+          title={interview.title}
+          subtitle={subtitle}
           currentQIdx={currentQIdx}
-          totalQuestions={TOTAL_QUESTIONS}
+          totalQuestions={questions.length}
         />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
@@ -162,10 +228,11 @@ export default function InterviewComponent({ interviewId }: { interviewId: strin
             />
           )}
 
-          {phase === InterviewPhaseEnum.FEEDBACK && (
+          {phase === InterviewPhaseEnum.FEEDBACK && result && (
             <FeedbackView
-              answer={answer}
-              feedback={feedback}
+              answer={result.answer}
+              feedback={result.feedback}
+              score={result.score}
               isLastQuestion={isLastQuestion}
               onNext={handleNext}
             />

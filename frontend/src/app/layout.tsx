@@ -27,7 +27,7 @@ export default async function RootLayout({
   const user = await getUser();
 
   return (
-    <html lang="en" className={`${rubik.variable} h-full antialiased`}>
+    <html lang="en" className={`${rubik.variable} h-full antialiased`} data-scroll-behavior="smooth">
       <body className={`${rubik.className} flex min-h-full flex-col`}>
         <UserProvider user={user}>
           <Navbar />

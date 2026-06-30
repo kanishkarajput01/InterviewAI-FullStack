@@ -1,4 +1,12 @@
-import type { ICreateInterviewRequest, ICreateInterviewResponse, IReportResponse, IInterview, ISubmitAnswerResponse, IUser } from "@/_shared/types";
+import type {
+  AttemptStatusEnum,
+  IAnswer,
+  IAttempt,
+  ICreateInterviewRequest,
+  IInterview,
+  IReport,
+  IUser,
+} from "@/_shared/types";
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -11,8 +19,14 @@ enum EApiRoute {
   ME = "ME",
   LOGOUT = "LOGOUT",
   CREATE_INTERVIEW = "CREATE_INTERVIEW",
+  LIST_INTERVIEWS = "LIST_INTERVIEWS",
   GET_INTERVIEW = "GET_INTERVIEW",
+  CREATE_ATTEMPT = "CREATE_ATTEMPT",
+  LIST_INTERVIEW_ATTEMPTS = "LIST_INTERVIEW_ATTEMPTS",
+  GET_ATTEMPT = "GET_ATTEMPT",
   SUBMIT_ANSWER = "SUBMIT_ANSWER",
+  LIST_ANSWERS = "LIST_ANSWERS",
+  GENERATE_REPORT = "GENERATE_REPORT",
   GET_REPORT = "GET_REPORT",
   STT = "STT",
 }
@@ -21,9 +35,11 @@ export class ApiClientService {
   private static async getRouteConfig({
     route,
     routeSegments,
+    searchParams,
   }: {
     route: EApiRoute;
     routeSegments?: string[];
+    searchParams?: Record<string, string>;
   }): Promise<{ url: URL; method: Method }> {
     const baseURL = NEXT_PUBLIC_API_URL;
     let method: Method = "GET";
@@ -52,20 +68,54 @@ export class ApiClientService {
         path = "/logout";
         method = "POST";
         break;
+      // Interviews
       case EApiRoute.CREATE_INTERVIEW:
         path = "/create-interview";
         method = "POST";
         break;
+      case EApiRoute.LIST_INTERVIEWS:
+        path = "/interviews";
+        method = "GET";
+        break;
       case EApiRoute.GET_INTERVIEW:
-        path = "/interview";
+        // /interviews/{interview_id}
+        path = "/interviews";
+        method = "GET";
+        break;
+      case EApiRoute.CREATE_ATTEMPT:
+        // /interviews/{interview_id}/attempts
+        path = "/interviews";
+        method = "POST";
+        break;
+      case EApiRoute.LIST_INTERVIEW_ATTEMPTS:
+        // /interviews/{interview_id}/attempts(?status=)
+        path = "/interviews";
+        method = "GET";
+        break;
+      // Attempts
+      case EApiRoute.GET_ATTEMPT:
+        // /attempts/{attempt_id}
+        path = "/attempts";
         method = "GET";
         break;
       case EApiRoute.SUBMIT_ANSWER:
-        path = "/interview";
+        // /attempts/{attempt_id}/answers
+        path = "/attempts";
+        method = "POST";
+        break;
+      case EApiRoute.LIST_ANSWERS:
+        // /attempts/{attempt_id}/answers
+        path = "/attempts";
+        method = "GET";
+        break;
+      case EApiRoute.GENERATE_REPORT:
+        // /attempts/{attempt_id}/report
+        path = "/attempts";
         method = "POST";
         break;
       case EApiRoute.GET_REPORT:
-        path = "/interview";
+        // /attempts/{attempt_id}/report
+        path = "/attempts";
         method = "GET";
         break;
       case EApiRoute.STT:
@@ -77,6 +127,11 @@ export class ApiClientService {
     }
 
     const url = new URL(`${baseURL}${path}${segments}`);
+    if (searchParams) {
+      for (const [key, value] of Object.entries(searchParams)) {
+        url.searchParams.set(key, value);
+      }
+    }
     return { url, method };
   }
 
@@ -222,31 +277,119 @@ export class ApiClientService {
     }
   }
 
-  static async createInterview({ jobRole, experience }: ICreateInterviewRequest) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.CREATE_INTERVIEW });
-    return this.apiClientService<ICreateInterviewResponse>({
+  // -------------------------------------------------------------------------
+  // Interviews
+  // -------------------------------------------------------------------------
+  static async createInterview(payload: ICreateInterviewRequest) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.CREATE_INTERVIEW,
+    });
+    return this.apiClientService<IInterview>({
       url,
       method,
-      data: { job_role: jobRole, experience },
+      data: { ...payload },
     });
   }
 
+  static async listInterviews({ mine = false }: { mine?: boolean } = {}) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.LIST_INTERVIEWS,
+      searchParams: mine ? { mine: "true" } : undefined,
+    });
+    return this.apiClientService<IInterview[]>({ url, method });
+  }
+
   static async getInterview({ interviewId }: { interviewId: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_INTERVIEW, routeSegments: [interviewId] });
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.GET_INTERVIEW,
+      routeSegments: [interviewId],
+    });
     return this.apiClientService<IInterview>({ url, method });
   }
 
-  static async submitAnswer({ interviewId, answer }: { interviewId: string; answer: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.SUBMIT_ANSWER, routeSegments: [interviewId, "answers"] });
-    return this.apiClientService<ISubmitAnswerResponse>({ url, method, data: { answer } });
+  // -------------------------------------------------------------------------
+  // Attempts
+  // -------------------------------------------------------------------------
+  static async createAttempt({ interviewId }: { interviewId: string }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.CREATE_ATTEMPT,
+      routeSegments: [interviewId, "create-attempt"],
+    });
+    return this.apiClientService<IAttempt>({ url, method });
   }
 
-  static async getReport({ interviewId }: { interviewId: string }) {
-    const { url, method } = await this.getRouteConfig({ route: EApiRoute.GET_REPORT, routeSegments: [interviewId, "report"] });
-    return this.apiClientService<IReportResponse>({ url, method });
+  static async listInterviewAttempts({
+    interviewId,
+    status,
+  }: {
+    interviewId: string;
+    status?: AttemptStatusEnum;
+  }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.LIST_INTERVIEW_ATTEMPTS,
+      routeSegments: [interviewId, "attempts"],
+      searchParams: status ? { status } : undefined,
+    });
+    return this.apiClientService<IAttempt[]>({ url, method });
   }
 
-  static async transcribeAudio({ audioBlob }: { audioBlob: Blob }): Promise<{ error: string | null; data: { text: string } | null }> {
+  static async getAttempt({ attemptId }: { attemptId: string }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.GET_ATTEMPT,
+      routeSegments: [attemptId],
+    });
+    return this.apiClientService<IAttempt>({ url, method });
+  }
+
+  static async submitAnswer({
+    attemptId,
+    questionId,
+    answer,
+  }: {
+    attemptId: string;
+    questionId: string;
+    answer: string;
+  }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.SUBMIT_ANSWER,
+      routeSegments: [attemptId, 'submit-answer'],
+    });
+    return this.apiClientService<IAnswer>({
+      url,
+      method,
+      data: { question_id: questionId, answer },
+    });
+  }
+
+  static async listAnswers({ attemptId }: { attemptId: string }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.LIST_ANSWERS,
+      routeSegments: [attemptId, "answers"],
+    });
+    return this.apiClientService<IAnswer[]>({ url, method });
+  }
+
+  static async generateReport({ attemptId }: { attemptId: string }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.GENERATE_REPORT,
+      routeSegments: [attemptId, "report"],
+    });
+    return this.apiClientService<IReport>({ url, method });
+  }
+
+  static async getReport({ attemptId }: { attemptId: string }) {
+    const { url, method } = await this.getRouteConfig({
+      route: EApiRoute.GET_REPORT,
+      routeSegments: [attemptId, "report"],
+    });
+    return this.apiClientService<IReport>({ url, method });
+  }
+
+  static async transcribeAudio({
+    audioBlob,
+  }: {
+    audioBlob: Blob;
+  }): Promise<{ error: string | null; data: { text: string } | null }> {
     if (!NEXT_PUBLIC_API_URL) {
       return { error: "API URL is not configured.", data: null };
     }
@@ -254,19 +397,28 @@ export class ApiClientService {
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.webm");
     try {
-      const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch { /* ignore parse failure */ }
+        } catch {
+          /* ignore parse failure */
+        }
         return { error: errorMessage, data: null };
       }
       const data = await response.json();
       return { error: null, data };
     } catch (err) {
-      return { error: `Network error: ${err instanceof Error ? err.message : "Unknown error"}`, data: null };
+      return {
+        error: `Network error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        data: null,
+      };
     }
   }
 }

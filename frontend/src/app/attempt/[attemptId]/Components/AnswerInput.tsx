@@ -31,7 +31,6 @@ export function AnswerInput({
 
   return (
     <div className="flex flex-col gap-4">
-
       <Textarea
         value={answer}
         onChange={(e) => onAnswerChange(e.target.value)}
@@ -44,7 +43,7 @@ export function AnswerInput({
       {recordingError && <p className="text-xs text-red-500">{recordingError}</p>}
 
       <div className="flex items-center justify-between">
-      <Button
+        <Button
           size="sm"
           onClick={isRecording ? onStopRecording : onStartRecording}
           disabled={inputDisabled}
@@ -81,10 +80,8 @@ export function AnswerInput({
           disabled={!answer.trim() || isSubmitting || isRecording || isTranscribing}
           className="gap-2 bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
         >
-            <>
-              Submit Answer
-              <ChevronRight className="h-4 w-4" />
-            </>
+          Submit Answer
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>

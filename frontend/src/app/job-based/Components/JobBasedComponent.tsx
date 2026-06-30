@@ -1,16 +1,38 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Globe, Info, Lock, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
-import { AuthModeEnum } from "@/_shared/types";
+import { AuthModeEnum, type Visibility } from "@/_shared/types";
 import ApiClientService from "@/app/_client-services/ApiService";
 import { AuthDialog } from "@/app/_shared-components/AuthDialog";
 import { Button } from "@/app/_shared-components/Button";
 import { Input } from "@/app/_shared-components/Input";
+import { Tooltip } from "@/app/_shared-components/Tooltip";
 import { useUser } from "@/app/contexts/UserContext";
 import { cn } from "@/lib/utils";
+
+const VISIBILITY_OPTIONS: {
+  value: Visibility;
+  label: string;
+  icon: typeof Globe;
+  description: string;
+}[] = [
+  {
+    value: "public",
+    label: "Public",
+    icon: Globe,
+    description:
+      "Anyone can discover this interview and practice with it. Great for sharing.",
+  },
+  {
+    value: "private",
+    label: "Private",
+    icon: Lock,
+    description: "Only you can see and attempt this interview.",
+  },
+];
 
 const EXPERIENCE_LEVELS = [
   { label: "0-1 years", value: 1, bgColor: "bg-emerald-100", borderColor: "peer-checked:border-emerald-500", dotColor: "bg-emerald-500" },
@@ -27,6 +49,7 @@ export default function JobBasedComponent() {
     jobTitle: "",
     experienceLevel: 1,
   });
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const router = useRouter();
   const [showAuth, setShowAuth] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,17 +72,25 @@ export default function JobBasedComponent() {
     if(!jobRole || !experience) {
       return;
     }
+    const experienceLabel =
+      EXPERIENCE_LEVELS.find((level) => level.value === experience)?.label ??
+      `${experience} years`;
+
     setIsSubmitting(true);
-    const { data, error: apiError } = await ApiClientService.createInterview({
-      jobRole,
-      experience,
+    const { data: interview, error: apiError } = await ApiClientService.createInterview({
+      title: `${jobRole} Interview`,
+      description: `Job interview for a ${jobRole} with ${experienceLabel} of experience.`,
+      type: "job",
+      role: jobRole,
+      visibility,
     });
-    if(apiError || !data) {
+    if (apiError || !interview) {
       setIsSubmitting(false);
       return;
     }
+
     setIsSubmitting(false);
-    router.push(`/interview/${data.id}`);
+    router.push(`/interviews/${interview.id}`);
   };
 
   return (
@@ -132,6 +163,43 @@ export default function JobBasedComponent() {
                     </div>
                   </label>
                 ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="mb-3 block text-sm font-medium text-slate-900">
+                Visibility
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {VISIBILITY_OPTIONS.map(({ value, label, icon: Icon, description }) => {
+                  const selected = visibility === value;
+                  return (
+                    <Tooltip key={value} content={description}>
+                      <button
+                        type="button"
+                        onClick={() => setVisibility(value)}
+                        aria-pressed={selected}
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-xl border-2 px-4 py-3 text-left transition-all",
+                          selected
+                            ? "border-violet-500 bg-violet-50"
+                            : "border-slate-200 bg-white hover:border-violet-300"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Icon
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              selected ? "text-violet-600" : "text-slate-500"
+                            )}
+                          />
+                          <span className="text-sm font-semibold text-slate-900">{label}</span>
+                        </span>
+                        <Info className="h-4 w-4 shrink-0 text-slate-400" />
+                      </button>
+                    </Tooltip>
+                  );
+                })}
               </div>
             </div>
 

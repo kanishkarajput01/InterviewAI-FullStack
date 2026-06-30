@@ -1,27 +1,37 @@
 from io import BytesIO
 import os
-import json
-import uuid
-from typing import List, Optional, Literal, TypedDict
+from typing import List, Optional
 
-
-from fastapi import FastAPI, File, HTTPException, Response, Cookie, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Response, Cookie, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
 from openai import OpenAI
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
-from app.src.dict import SignupRequest, LoginRequest, UserDict
+
+from app.src.dict import (
+    SignupRequest,
+    LoginRequest,
+    UserDict,
+    CreateInterviewRequest,
+    InterviewDict,
+    AttemptDict,
+    AttemptWithAnswersDict,
+    AnswerDict,
+    ReportDict,
+    SubmitAnswerRequest,
+)
 from app.src.api._auth.signup import signup
 from app.src.api._auth.login import login
 from app.src.api._auth.user import user as get_user
+from app.src.api._interview.create import create_interview
+from app.src.api._interview.get import get_interview
+from app.src.api._interview.list import list_interviews
+from app.src.api._attempt.create import create_attempt
+from app.src.api._attempt.get import get_attempt, list_answers, list_user_attempts
+from app.src.api._attempt.submit_answer import submit_answer
+from app.src.api._attempt.report import complete_attempt, get_report
 from app.src.utils._auth.jwt import verify_token
+from app.src.utils._auth.current_user import get_current_user_id
 
 
 load_dotenv()
@@ -48,362 +58,132 @@ async def root():
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
-llm = ChatOpenAI(model="gpt-4", temperature=0.7, api_key=OPENAI_API_KEY)
-parser = StrOutputParser()
-
-
 # ---------------------------
-# Prompts
+# Optional auth dependency: resolves the user id from the cookie when present,
+# but does not require it (used for public/private visibility checks).
 # ---------------------------
-GENERATE_QUESTIONS_PROMPT = ChatPromptTemplate.from_template("""
-You are an expert technical interviewer. Based on the job role and experience level, generate exactly 5 relevant technical questions.
+def get_optional_user_id(access_token: Optional[str] = Cookie(None)) -> Optional[str]:
+    if not access_token:
+        return None
+    payload = verify_token(access_token)
+    if not payload:
+        return None
+    return payload.get("id")
+
+
+def _raise_domain_error(e: Exception):
+    """Map domain exceptions to HTTP responses."""
+    if isinstance(e, PermissionError):
+        raise HTTPException(status_code=403, detail=str(e))
+    if isinstance(e, ValueError):
+        # "does not exist" -> 404, everything else -> 400
+        message = str(e)
+        if "does not exist" in message or "No report" in message:
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+    raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===========================================================================
+# Interviews
+# ===========================================================================
+@app.post("/create-interview", response_model=InterviewDict)
+async def post_interview(req: CreateInterviewRequest, user_id: str = Depends(get_current_user_id)):
+    try:
+        return create_interview(req, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.get("/interviews", response_model=List[InterviewDict])
+async def get_interviews(mine: bool = False, user_id: Optional[str] = Depends(get_optional_user_id)):
+    try:
+        return list_interviews(requester_id=user_id, mine=mine)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.get("/interviews/{interview_id}", response_model=InterviewDict)
+async def get_interview_by_id(interview_id: str, user_id: Optional[str] = Depends(get_optional_user_id)):
+    try:
+        return get_interview(interview_id, requester_id=user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+# ===========================================================================
+# Attempts
+# ===========================================================================
+@app.post("/interviews/{interview_id}/create-attempt", response_model=AttemptDict)
+async def post_attempt(interview_id: str, user_id: str = Depends(get_current_user_id)):
+    try:
+        return create_attempt(interview_id, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.get("/interviews/{interview_id}/attempts", response_model=List[AttemptWithAnswersDict])
+async def get_interview_attempts(
+    interview_id: str,
+    status: Optional[str] = None,
+    user_id: str = Depends(get_current_user_id),
+):
+    """List the current user's attempts on a single interview.
+
+    Each attempt includes its full answers breakdown. Optional ``status``
+    query param filters to attempts in that status
+    (not_started | in_progress | completed).
+    """
+    try:
+        return list_user_attempts(interview_id, user_id, status=status)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.get("/attempts/{attempt_id}", response_model=AttemptDict)
+async def get_attempt_by_id(attempt_id: str, user_id: str = Depends(get_current_user_id)):
+    try:
+        return get_attempt(attempt_id, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.post("/attempts/{attempt_id}/submit-answer", response_model=AnswerDict)
+async def post_answer(attempt_id: str, req: SubmitAnswerRequest, user_id: str = Depends(get_current_user_id)):
+    try:
+        return submit_answer(attempt_id, req, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
+
+@app.get("/attempts/{attempt_id}/answers", response_model=List[AnswerDict])
+async def get_answers(attempt_id: str, user_id: str = Depends(get_current_user_id)):
+    try:
+        return list_answers(attempt_id, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
+
 
+@app.post("/attempts/{attempt_id}/report", response_model=ReportDict)
+async def post_report(attempt_id: str, user_id: str = Depends(get_current_user_id)):
+    """Generate the aggregate report and mark the attempt completed."""
+    try:
+        return complete_attempt(attempt_id, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
 
-Job Role: {job_role}
-Experience Level: {experience} years
 
+@app.get("/attempts/{attempt_id}/report", response_model=ReportDict)
+async def get_attempt_report(attempt_id: str, user_id: str = Depends(get_current_user_id)):
+    try:
+        return get_report(attempt_id, user_id)
+    except Exception as e:
+        _raise_domain_error(e)
 
-Generate 5 questions that are:
-1. Appropriate for the experience level
-2. Technical and role-specific
-3. Progressive in difficulty
-4. Cover different aspects of the role
 
-
-Return ONLY a JSON array of 5 questions, no explanations:
-[
-    "Question 1",
-    "Question 2",
-    "Question 3",
-    "Question 4",
-    "Question 5"
-]
-""")
-
-
-EVALUATE_ANSWER_PROMPT = ChatPromptTemplate.from_template("""
-You are an expert technical interviewer evaluating a candidate's answer.
-
-
-Job Role: {job_role}
-Experience Level: {experience} years
-Question: {question}
-Candidate's Answer: {answer}
-
-
-Provide a detailed evaluation including:
-1. Technical accuracy (1-10)
-2. Completeness of answer (1-10)
-3. Clarity of explanation (1-10)
-4. Specific feedback and suggestions
-5. Overall score (1-10)
-
-
-Format your response as:
-Score: X/10
-Technical Accuracy: X/10
-Completeness: X/10
-Clarity: X/10
-Feedback: [Your detailed feedback here]
-""")
-
-
-FINAL_REPORT_PROMPT = ChatPromptTemplate.from_template("""
-You are an expert technical interviewer creating a comprehensive interview report.
-
-
-Job Role: {job_role}
-Experience Level: {experience} years
-
-
-Interview Results:
-{interview_results}
-
-
-Create a professional final report including:
-1. Overall assessment
-2. Strengths identified
-3. Areas for improvement
-4. Technical competency score (average of all scores)
-5. Recommendation (Pass/Fail/Consider with conditions)
-6. Detailed breakdown of each question
-
-
-Format as a professional report.
-""")
-
-
-# ---------------------------
-# LangGraph State Definition
-# ---------------------------
-class InterviewQA(TypedDict):
-    question: str
-    answer: str
-    feedback: str
-
-
-class InterviewState(TypedDict):
-    job_role: str
-    experience: int
-    data: List[InterviewQA]
-    current_question_idx: int
-    interview_complete: bool
-    final_report: str
-    last_question: str
-    last_answer: Optional[str]  # For API input
-
-class InterviewResponse(BaseModel):
-    id: str
-    data: List[InterviewQA]
-    job_role: str
-    experience: int
-    current_question_idx: int
-# ---------------------------
-# LangGraph Nodes
-# ---------------------------
-def get_job_role_and_experience(state: InterviewState) -> InterviewState:
-    """Validate job role and experience are provided."""
-    if not state.get("job_role") or state.get("experience") is None:
-        raise ValueError("job_role and experience must be provided.")
-    return state
-
-
-def generate_questions(state: InterviewState) -> InterviewState:
-    """Generate interview questions based on job role and experience."""
-    chain = GENERATE_QUESTIONS_PROMPT | llm | parser
-    questions_json = chain.invoke({
-        "job_role": state["job_role"],
-        "experience": state["experience"]
-    })
-    questions = json.loads(questions_json)
-    question_list: List[InterviewQA] = [{"question": q, "answer": "", "feedback": ""} for q in questions]
-    
-    return {
-        **state,
-        "data": question_list,
-        "current_question_idx": 0,
-        "interview_complete": False,
-        "final_report": "",
-        "last_question": question_list[0]["question"] if question_list else ""
-    }
-
-
-def ask_question(state: InterviewState) -> InterviewState:
-    """Get the current question."""
-    idx = state.get("current_question_idx", 0)
-    if idx >= 5:
-        return state
-    q_text = state["data"][idx]["question"]
-    return {**state, "last_question": q_text}
-
-
-def evaluate_answer(state: InterviewState) -> InterviewState:
-    """Evaluate the candidate's answer and generate feedback."""
-    idx = state.get("current_question_idx", 0)
-    if idx >= 5:
-        return state
-    
-    # Check if we have an answer to evaluate
-    last_answer = state.get("last_answer")
-    if not last_answer:
-        # No answer provided, just return current state
-        return state
-    
-    question_text = state["data"][idx]["question"]
-    answer_text = last_answer.strip()
-    
-    if not answer_text:
-        raise ValueError("No answer provided for current question.")
-
-
-    chain = EVALUATE_ANSWER_PROMPT | llm | parser
-    feedback = chain.invoke({
-        "job_role": state["job_role"],
-        "experience": state["experience"],
-        "question": question_text,
-        "answer": answer_text
-    })
-    
-    data_copy = state["data"].copy()
-    data_copy[idx]["answer"] = answer_text
-    data_copy[idx]["feedback"] = feedback
-
-
-    new_idx = idx + 1
-    next_question = data_copy[new_idx]["question"] if new_idx < 5 else ""
-    
-    return {
-        **state,
-        "data": data_copy,
-        "current_question_idx": new_idx,
-        "last_question": next_question,
-        "last_answer": None  # Clear the answer after processing
-    }
-
-
-def generate_final_report(state: InterviewState) -> InterviewState:
-    """Generate the final interview report."""
-    interview_results = ""
-    for i in range(5):
-        qd = state["data"][i]
-        interview_results += f"\nQuestion {i+1}: {qd['question']}\n"
-        interview_results += f"Answer: {qd['answer']}\n"
-        interview_results += f"Feedback: {qd['feedback']}\n"
-        interview_results += "-" * 40 + "\n"
-
-
-    chain = FINAL_REPORT_PROMPT | llm | parser
-    final_report = chain.invoke({
-        "job_role": state["job_role"],
-        "experience": state["experience"],
-        "interview_results": interview_results
-    })
-    
-    return {
-        **state, 
-        "final_report": final_report, 
-        "interview_complete": True
-    }
-
-
-def should_continue_interview(state: InterviewState) -> Literal["continue", "complete"]:
-    """Determine if interview should continue or complete."""
-    current_idx = state.get("current_question_idx", 0)
-    return "continue" if current_idx < 5 else "complete"
-
-
-# ---------------------------
-# LangGraph Workflow Setup
-# ---------------------------
-workflow = StateGraph(InterviewState)
-workflow.add_node("get_job_role_and_experience", get_job_role_and_experience)
-workflow.add_node("generate_questions", generate_questions)
-workflow.add_node("ask_question", ask_question)
-workflow.add_node("evaluate_answer", evaluate_answer)
-workflow.add_node("generate_final_report", generate_final_report)
-
-
-# Simple workflow: just generate questions and ask first question
-workflow.add_edge(START, "get_job_role_and_experience")
-workflow.add_edge("get_job_role_and_experience", "generate_questions")
-workflow.add_edge("generate_questions", "ask_question")
-workflow.add_edge("ask_question", END)
-
-
-# Compile with memory checkpointer for interview persistence
-checkpointer = MemorySaver()
-compiled_graph = workflow.compile(checkpointer=checkpointer)
-
-
-class CreateInterviewRequest(BaseModel):
-    job_role: str = Field(..., example="Research Engineer")
-    experience: int = Field(..., example=1)
-
-class CreateInterviewResponse(BaseModel):
-        id: str
-        questions: List[str]
-        job_role: str
-        experience: int
-        current_question_idx: int
-
-class SubmitAnswerRequest(BaseModel):
-    answer: str
-class SubmitAnswerResponse(BaseModel):
-    question: str
-    answer: str
-    feedback: str
-    next_question: Optional[str]=None
-    next_question_idx: Optional[int]=None
-
-class ReportResponse(BaseModel):
-    job_role: str
-    experience: int
-    final_report: str
-    interview_complete: bool
-
-@app.post("/create-interview")
-async def create_interview(req: CreateInterviewRequest):
-    interview_id = str(uuid.uuid4())
-    config = {"configurable": {"thread_id": interview_id}}
-    initial_state: InterviewState = {
-        "job_role": req.job_role,
-        "experience": req.experience,
-        "data": [],
-        "current_question_idx": 0,
-        "interview_complete": False,
-        "final_report": "",
-        "last_question": "",
-        "last_answer": None
-    }
-
-    compiled_graph.invoke(initial_state, config=config)
-    state = compiled_graph.get_state(config)
-    values = state.values
-    questions = [row["question"] for row in values.get("data", [])]
-    return CreateInterviewResponse(
-        id= interview_id,
-        questions=questions,
-        job_role=values["job_role"],
-        experience=values["experience"],
-        current_question_idx=values.get("current_question_idx", 0),
-    )
-
-
-@app.get("/interview/{interview_id}")
-async def get_interview(interview_id: str):
-    config = {"configurable": {"thread_id": interview_id}}
-    state = compiled_graph.get_state(config)
-    values = state.values
-    return InterviewResponse(
-        id=interview_id,
-        data=values["data"],
-        job_role=values["job_role"],
-        experience=values["experience"],
-        current_question_idx=values.get("current_question_idx", 0),
-    )
-
-@app.post("/interview/{interview_id}/answers")
-async def post_answers(interview_id: str, req: SubmitAnswerRequest):
-    config = {"configurable": {"thread_id": interview_id}}
-    state = compiled_graph.get_state(config)
-    
-    values = state.values
-    idx = values.get("current_question_idx", 0)
-    question = values["data"][idx]["question"]
-    eval_values = {**values, "last_answer": req.answer.strip()} 
-
-    updated_state = evaluate_answer(eval_values)
-    compiled_graph.update_state( config, updated_state)
-    feedback = updated_state["data"][idx]["feedback"]
-    next_question: Optional[str] = None
-    next_question_idx: Optional[int] = None
-    if updated_state.get("current_question_idx", 0) < 5:
-        next_question_idx = updated_state["current_question_idx"]
-        next_question = updated_state["data"][next_question_idx]["question"]
-    else:
-        # //generate final report
-        final_state = generate_final_report(updated_state)
-        compiled_graph.update_state(config, final_state)
-    return SubmitAnswerResponse(
-        question=question,
-        answer=req.answer,
-        feedback=feedback,
-        next_question=next_question,
-        next_question_idx=next_question_idx,
-    )
-
-@app.get("/interview/{interview_id}/report")
-async def get_report(interview_id: str):
-    config = {"configurable": {"thread_id": interview_id}}
-    state = compiled_graph.get_state(config)
-    values = state.values
-    return ReportResponse(
-       job_role=values["job_role"],
-       experience=values["experience"],
-       final_report=values["final_report"],
-       interview_complete=values["interview_complete"],
-    )
-
+# ===========================================================================
+# Auth
+# ===========================================================================
 @app.post("/signup", response_model=UserDict)
 async def user_signup(req: SignupRequest, response: Response):
     try:
@@ -418,8 +198,9 @@ async def user_signup(req: SignupRequest, response: Response):
         return auth.user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Signup failed")
+
 
 @app.post("/login", response_model=UserDict)
 async def user_login(req: LoginRequest, response: Response):
@@ -435,7 +216,7 @@ async def user_login(req: LoginRequest, response: Response):
         return auth.user
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Login failed")
 
 
@@ -450,23 +231,24 @@ async def logout(response: Response):
     )
     return {"message": "Logged out"}
 
+
 @app.get('/me')
 async def get_me(response: Response, access_token: Optional[str] = Cookie(None)):
     """Get current logged-in user details from cookie"""
-    
+
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated - no cookie")
-    
+
     # Verify token
     payload = verify_token(access_token)
-    
+
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
+
     user_id = payload.get("id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload")
-    
+
     try:
         user_details = get_user(user_id)
         response.set_cookie(
@@ -492,19 +274,20 @@ async def user_get(id: str):
         return user_data
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to get user")
+
 
 @app.post("/stt")
 async def speech_to_text(audio: UploadFile = File(...)):
     """
     🎤 SPEECH-TO-TEXT ENDPOINT
-    
+
     Convert speech to text using OpenAI's Whisper API.
     Accepts audio file and returns transcribed text.
-    
+
     Request: Multipart form data with audio file
-    
+
     Response example:
     {
         "text": "This is my answer to your question...",
@@ -521,40 +304,40 @@ async def speech_to_text(audio: UploadFile = File(...)):
                 status_code=400,
                 detail="No audio file provided"
             )
-        
+
         # Check file format (Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm)
         allowed_extensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm']
         file_extension = os.path.splitext(audio.filename)[1].lower()
-        
+
         if file_extension not in allowed_extensions:
             raise HTTPException(
                 status_code=400,
                 detail=f"Unsupported audio format: {file_extension}. Supported: {', '.join(allowed_extensions)}"
             )
-        
+
         # ========================================
         # STEP B: Read Audio Data
         # ========================================
         audio_data = await audio.read()
-        
+
         if len(audio_data) == 0:
             raise HTTPException(
                 status_code=400,
                 detail="Uploaded audio file is empty"
             )
-        
+
         # ========================================
         # STEP C: Connect to OpenAI
         # ========================================
         client = OpenAI(api_key=OPENAI_API_KEY)
-        
+
         # ========================================
         # STEP D: Transcribe Audio
         # ========================================
         # Create file-like object for OpenAI
         audio_file = BytesIO(audio_data)
         audio_file.name = audio.filename
-        
+
         # Call Whisper API
         transcript = client.audio.transcriptions.create(
             model="whisper-1",
@@ -562,7 +345,7 @@ async def speech_to_text(audio: UploadFile = File(...)):
             language="en",
             response_format="verbose_json"
         )
-        
+
         # ========================================
         # STEP E: Return Transcription
         # ========================================
@@ -571,11 +354,11 @@ async def speech_to_text(audio: UploadFile = File(...)):
             "language": transcript.language,
             "duration": transcript.duration
         }
-        
+
     except HTTPException:
         # Re-raise HTTP exceptions (validation errors)
         raise
-        
+
     except Exception as e:
         # Log error for debugging
         print(f"STT Error: {str(e)}")
@@ -583,7 +366,7 @@ async def speech_to_text(audio: UploadFile = File(...)):
             status_code=500,
             detail=f"STT Error: {str(e)}"
         )
-    
+
     finally:
         # Cleanup - close the uploaded file
         await audio.close()
